@@ -18,9 +18,11 @@ import { CalendarBodyRow, CalendarRowDiv } from "@/styles/calendar.style";
 import { dataServiceKey } from "@/configs/data.service";
 import axios from "axios";
 
+import DetailModal from "./DetailModal";
+
 export default function CalendarWrap() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const date = ["일", "월", "화", "수", "목", "금", "토"];
   const [rows, setRows] = useState<React.JSX.Element[]>([]);
 
@@ -43,7 +45,6 @@ export default function CalendarWrap() {
         if (!items?.length) {
           items = items ? [items] : undefined;
         }
-        console.log("items:", items);
         let days = [];
         let rowArr = [];
         let day = startDate;
@@ -75,10 +76,12 @@ export default function CalendarWrap() {
 
             days.push(
               <CalendarRowDiv
-                className={`border-l border-black border-solid text-left p-1 w-full h-36 cursor-pointer ${state}`}
+                className={`${
+                  i === 0 ? "" : "border-l"
+                } border-black border-solid text-left p-1 w-full h-36 cursor-pointer ${state} relative`}
                 id={`date-${formatDate}`}
                 key={`day-${i}`}
-                onClick={(e) => {
+                onClick={() => {
                   setSelectedDate(formatDate);
                 }}
               >
@@ -100,11 +103,46 @@ export default function CalendarWrap() {
                     ? "text-red-600"
                     : "text-black"
                 }
+                text-base
+                day
               `}
                 >
                   {formattedDate}
-                  <span className="ml-1">{holiday}</span>
                 </span>
+                <span
+                  className={`
+                ${
+                  format(currentMonth, "M") !== format(day, "M")
+                    ? "text not-valid"
+                    : ""
+                }
+                ${
+                  state === "disabled"
+                    ? "text-gray-500"
+                    : i === 0
+                    ? "text-red-600"
+                    : i === 6
+                    ? "text-blue-600"
+                    : holiday
+                    ? "text-red-600"
+                    : "text-black"
+                }
+                text-base
+                ml-1
+              `}
+                >
+                  {holiday}
+                </span>
+                {state === "selected" ? (
+                  <span
+                    className="today 
+                text-base absolute right-2 top-1"
+                  >
+                    ToDay
+                  </span>
+                ) : (
+                  <></>
+                )}
                 {list}
               </CalendarRowDiv>
             );
@@ -134,44 +172,67 @@ export default function CalendarWrap() {
   };
 
   useEffect(() => {
-    console.log("selectedDate:", selectedDate);
+    if (selectedDate) {
+      document.body.style.cssText = `
+        position: fixed; 
+        top: -${window.scrollY}px;
+        overflow-y: scroll;
+        width: 100%;
+      `;
+    } else {
+      const scrollY = document.body.style.top;
+      document.body.style.cssText = "";
+      window.scrollTo(0, parseInt(scrollY || "0", 10) * -1);
+    }
   }, [selectedDate]);
 
   return (
-    <div className="xl:container mx-auto  p-24">
-      <div className="w-full">
+    <div className="sm:container mx-auto box-content py-20">
+      <div className="w-full mx-auto">
         {/* calendars */}
-        <div className="w-full m-5 border border-black border-solid rounded-lg">
+        <div className="w-full mx-auto border border-black border-solid rounded-lg  bg-white">
           {/* calendar-header */}
-          <div className="w-full h-16 p-2 border-b border-black border-solid">
-            <div className="mt-1 justify-between flex">
-              <span className="text-3xl font-bold text-gray-400">
+          <div className="w-full h-18 border-b border-black border-solid">
+            <div className="w-full px-2 border-b border-black border-solid text-center">
+              <span className="text-xl font-bold text-[#aa5fd3]">
                 {format(currentMonth, "yyyy")}
               </span>
+            </div>
+            <div className="p-2 justify-between flex">
               <div className="flex justify-start">
                 <span className="text-xl text-gray-400">
-                  <span className="text-3xl mr-1 text-black">
-                    {format(currentMonth, "M")}월
+                  <span className="text-2xl mr-1 text-black">
+                    {format(currentMonth, "MM")}월
                   </span>
                 </span>
                 <Icon
-                  className="cursor-pointer w-10 h-10 mx-2"
-                  icon="bi:arrow-left-circle-fill"
+                  className="cursor-pointer w-8 h-8 mx-2"
+                  icon="icon-park-solid:arrow-circle-left"
+                  style={{ color: "#aa5fd3" }}
                   onClick={() => {
                     arrowBtnHandler("prev");
                   }}
                 />
                 <Icon
-                  className="cursor-pointer w-10 h-10"
-                  icon="bi:arrow-right-circle-fill"
+                  className="cursor-pointer w-8 h-8"
+                  icon="icon-park-solid:arrow-circle-right"
+                  style={{ color: "#aa5fd3" }}
                   onClick={() => {
                     arrowBtnHandler("next");
                   }}
                 />
               </div>
               <div className="flex justify-start">
-                <span>플러스</span>
-                <span>점세개</span>
+                <span>
+                  <Icon
+                    className="cursor-pointer w-8 h-8"
+                    icon="icon-park-solid:add"
+                    style={{ color: "#aa5fd3" }}
+                    onClick={() => {
+                      setSelectedDate("add");
+                    }}
+                  />
+                </span>
               </div>
             </div>
           </div>
@@ -181,7 +242,10 @@ export default function CalendarWrap() {
               return (
                 <div
                   key={index}
-                  className="w-full text-center p-1 border-l border-black border-solid font-bold"
+                  className={`${
+                    index === 0 ? "" : "border-l"
+                  } w-full text-center p-1 
+                  border-black border-solid font-bold`}
                 >
                   <span
                     className={
@@ -202,6 +266,14 @@ export default function CalendarWrap() {
           <div className="w-full">{rows}</div>
         </div>
       </div>
+      {selectedDate ? (
+        <DetailModal
+          selectedDate={selectedDate}
+          setSelectedDate={setSelectedDate}
+        />
+      ) : (
+        <></>
+      )}
     </div>
   );
 }
