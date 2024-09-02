@@ -201,7 +201,7 @@ export default function CalendarWrap() {
             <div className="p-2 justify-between flex">
               <div className="flex justify-start">
                 <span className="text-xl text-gray-400">
-                  <span className="text-2xl mr-1 text-black">
+                  <span className="text-2xl mr-1 text-black font-bold">
                     {format(currentMonth, "MM")}월
                   </span>
                 </span>

@@ -7,15 +7,15 @@ import { startOfMonth, endOfMonth } from "date-fns";
 export default function DatePicker({
   selectedDate,
   startDate,
-  setStartDate,
+  setStartValue,
   endDate,
-  setEndDate,
+  setEndValue,
 }: {
   selectedDate: string;
   startDate: string | null;
   endDate: string | null;
-  setStartDate: React.Dispatch<React.SetStateAction<string | null>>;
-  setEndDate: React.Dispatch<React.SetStateAction<string | null>>;
+  setStartValue: React.Dispatch<React.SetStateAction<string | null>>;
+  setEndValue: React.Dispatch<React.SetStateAction<string | null>>;
 }) {
   // start
   const [startOpen, setStartOpen] = useState<boolean>(false);
@@ -101,7 +101,7 @@ export default function DatePicker({
     setEndDay(dayjs(endDate).format("DD"));
     setEndHour(dayjs(endDate).format("HH"));
     setEndMin(dayjs(endDate).format("mm"));
-  }, [startDate, endDate, selectedDate]);
+  }, [startDate, endDate]);
 
   useEffect(() => {
     const date = dayjs(`${startYear}-${startMonth}`).format("YYYY-MM-DD");
@@ -179,12 +179,12 @@ export default function DatePicker({
 
   useEffect(() => {
     const startValue = `${startYear}-${startMonth}-${startDay} ${startHour}:${startMin}`;
-    setStartDate(startValue);
+    setStartValue(startValue);
   }, [startYear, startMonth, startDay, startHour, startMin]);
 
   useEffect(() => {
     const endValue = `${endYear}-${endMonth}-${endDay} ${endHour}:${endMin}`;
-    setEndDate(endValue);
+    setEndValue(endValue);
   }, [endYear, endMonth, endDay, endHour, endMin]);
 
   return (
@@ -208,7 +208,7 @@ export default function DatePicker({
         {startOpen ? (
           <PickerBox
             className={`w-full bg-white border border-black border-solid 
-          } rounded-md  text-center text-lg absolute top-12 left-0`}
+          } rounded-md  text-center text-lg absolute top-12 left-0 z-10`}
           >
             <div className="w-full flex justify-between border-b border-black border-solid bg-[#eedeff] text-base rounded-t-md">
               <span className="w-[110px] border-r border-black border-solid">
@@ -228,7 +228,7 @@ export default function DatePicker({
                 분
               </span>
             </div>
-            <div className="w-full flex justify-between h-44 border-b border-black border-solid">
+            <div className="w-full flex justify-between h-44 ">
               {/* year */}
               <div className="border-r border-black border-solid w-[110px] overflow-hidden overflow-y-auto relative">
                 {startYearList.map((year, index) => {
@@ -366,7 +366,7 @@ export default function DatePicker({
         {endOpen ? (
           <PickerBox
             className={`w-full bg-white border border-black border-solid 
-          } rounded-md  text-center text-lg absolute top-12 left-0`}
+          } rounded-md  text-center text-lg absolute top-12 left-0 z-10`}
           >
             <div className="w-full flex justify-between border-b border-black border-solid bg-[#eedeff] text-base rounded-t-md">
               <span className="w-[110px] border-r border-black border-solid">
@@ -386,7 +386,7 @@ export default function DatePicker({
                 분
               </span>
             </div>
-            <div className="w-full flex justify-between h-44 border-b border-black border-solid">
+            <div className="w-full flex justify-between h-44">
               {/* year */}
               <div className="border-r border-black border-solid w-[110px] overflow-hidden overflow-y-auto relative">
                 {endYearList.map((year, index) => {
