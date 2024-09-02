@@ -13,7 +13,7 @@
 
 /src/configs
 
-/.next
+/.next/
 
 # misc
 .DS_Store
