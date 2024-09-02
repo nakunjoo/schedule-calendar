@@ -13,6 +13,8 @@
 
 /src/configs
 
+/.next
+
 # misc
 .DS_Store
 .env.local

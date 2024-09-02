@@ -10,4 +10,8 @@ export const PickerBox = styled.div`
       outline: none;
     }
   }
+  .disabled {
+    background-color: #bababa;
+    pointer-events: none;
+  }
 `;

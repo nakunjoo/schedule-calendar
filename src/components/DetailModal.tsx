@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import DatePicker from "./DatePicker";
+import dayjs from "dayjs";
 
 export default function DetailModal({
   selectedDate,
@@ -8,6 +9,19 @@ export default function DetailModal({
   selectedDate: string;
   setSelectedDate: React.Dispatch<React.SetStateAction<string | null>>;
 }) {
+  const [startDate, setStartDate] = useState<string | null>(null);
+  const [endDate, setEndDate] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (selectedDate === "add") {
+      setStartDate(dayjs().format("YYYY-MM-DD HH:mm"));
+      setEndDate(dayjs().format("YYYY-MM-DD HH:mm"));
+    } else {
+      setStartDate(dayjs(selectedDate).format("YYYY-MM-DD HH:mm"));
+      setEndDate(dayjs(selectedDate).format("YYYY-MM-DD HH:mm"));
+    }
+  }, [selectedDate]);
+
   return (
     <div className="w-full h-full">
       <div
@@ -21,8 +35,22 @@ export default function DetailModal({
           {selectedDate === "add" ? "일정 추가" : "일정 상세"}
         </h2>
         <div className="w-full mt-4">
+          <h3 className="text-xl font-bold">제목</h3>
+          <input
+            className=""
+            type="text"
+            placeholder="일정 제목을 입력해주세요."
+          />
+        </div>
+        <div className="w-full mt-4">
           <h3 className="text-xl font-bold">시간</h3>
-          <DatePicker selectedDate={selectedDate} />
+          <DatePicker
+            selectedDate={selectedDate}
+            startDate={startDate}
+            setStartDate={setStartDate}
+            endDate={endDate}
+            setEndDate={setEndDate}
+          />
         </div>
       </div>
     </div>
