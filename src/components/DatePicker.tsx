@@ -1,17 +1,19 @@
+"use client";
 import React, { useState, useEffect, useRef } from "react";
 import { Icon } from "@iconify/react";
 import { PickerBox } from "@/styles/datepicker.style";
 import dayjs from "dayjs";
 import { startOfMonth, endOfMonth } from "date-fns";
+import { OptionState } from "@/stores/slices/option-slices";
 
 export default function DatePicker({
-  selectedDate,
+  userOptions,
   startDate,
   setStartValue,
   endDate,
   setEndValue,
 }: {
-  selectedDate: string;
+  userOptions: OptionState;
   startDate: string | null;
   endDate: string | null;
   setStartValue: React.Dispatch<React.SetStateAction<string | null>>;
@@ -191,9 +193,9 @@ export default function DatePicker({
     <div className="w-full mt-2 sm:flex sm:justify-around">
       <div className="sm:inline-block block sm:w-60 w-full relative">
         <Icon
-          className="inline-block w-8 h-8 mr-2"
+          className="inline-block w-8 h-8 mr-2 -mt-1"
           icon="vaadin:hourglass-start"
-          style={{ color: "#aa5fd3" }}
+          style={{ color: userOptions.themeColor }}
         />
         <input
           className="border-black border-solid border rounded p-2 cursor-pointer text-base"
@@ -333,7 +335,8 @@ export default function DatePicker({
             </div>
             <div className="w-full p-2 flex justify-end">
               <div
-                className="w-16 bg-[#aa5fd3] rounded-md text-white p-2 cursor-pointer"
+                className={`w-16 rounded-md text-white p-2 cursor-pointer`}
+                style={{ backgroundColor: userOptions.themeColor }}
                 onClick={() => {
                   setStartOpen(false);
                 }}
@@ -349,9 +352,9 @@ export default function DatePicker({
       <span className="sm:mx-2 mt-2">~</span>
       <div className="sm:inline-block block sm:w-60 w-full relative">
         <Icon
-          className="inline-block  w-8 h-8  mr-2"
+          className="inline-block  w-8 h-8 mr-2 -mt-1"
           icon="vaadin:hourglass-end"
-          style={{ color: "#aa5fd3" }}
+          style={{ color: userOptions.themeColor }}
         />
         <input
           className="border-black border-solid border rounded p-2 text-base cursor-pointer"
@@ -491,7 +494,8 @@ export default function DatePicker({
             </div>
             <div className="w-full p-2 flex justify-end">
               <div
-                className="w-16 bg-[#aa5fd3] rounded-md text-white p-2 cursor-pointer"
+                className={`w-16 rounded-md text-white p-2 cursor-pointer`}
+                style={{ backgroundColor: userOptions.themeColor }}
                 onClick={() => {
                   setEndOpen(false);
                 }}

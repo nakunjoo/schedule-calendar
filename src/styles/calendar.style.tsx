@@ -1,4 +1,7 @@
+import { store } from "@/stores";
 import { css, styled } from "styled-components";
+
+const userOptions = store.getState().optionReducer.value;
 
 export const CalendarBodyRow = styled.div`
   &:last-child {
@@ -18,15 +21,13 @@ export const CalendarRowDiv = styled.div`
       text-align: center;
       width: 30px;
       height: 30px;
-      background-color: #aa5fd3;
       color: #efefef;
       border-radius: 50%;
       line-height: 30px;
       font-weight: bold;
     }
-    > .today {
+    .today {
       font-weight: bold;
-      color: #aa5fd3;
     }
   }
 `;
