@@ -1,9 +1,13 @@
 import { configureStore } from "@reduxjs/toolkit";
 import optionReducer from "./slices/option-slices";
+import categoryReducer from "./slices/category-slices";
+import scheduleReducer from "./slices/schedule-slices";
 
 export const store = configureStore({
   reducer: {
     optionReducer,
+    categoryReducer,
+    scheduleReducer,
   },
 });
 

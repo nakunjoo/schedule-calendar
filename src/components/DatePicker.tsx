@@ -16,8 +16,8 @@ export default function DatePicker({
   userOptions: OptionState;
   startDate: string | null;
   endDate: string | null;
-  setStartValue: React.Dispatch<React.SetStateAction<string | null>>;
-  setEndValue: React.Dispatch<React.SetStateAction<string | null>>;
+  setStartValue: React.Dispatch<React.SetStateAction<string>>;
+  setEndValue: React.Dispatch<React.SetStateAction<string>>;
 }) {
   // start
   const [startOpen, setStartOpen] = useState<boolean>(false);

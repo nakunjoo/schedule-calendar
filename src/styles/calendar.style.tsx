@@ -1,7 +1,4 @@
-import { store } from "@/stores";
 import { css, styled } from "styled-components";
-
-const userOptions = store.getState().optionReducer.value;
 
 export const CalendarBodyRow = styled.div`
   &:last-child {
@@ -29,5 +26,11 @@ export const CalendarRowDiv = styled.div`
     .today {
       font-weight: bold;
     }
+  }
+`;
+
+export const CategoryBox = styled.div`
+  &.active {
+    border: 2px solid ${(props) => props.color};
   }
 `;

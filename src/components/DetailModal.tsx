@@ -5,12 +5,11 @@ import dayjs from "dayjs";
 import { Icon } from "@iconify/react";
 import { OptionState } from "@/stores/slices/option-slices";
 import CategoryModal from "./CategoryModal";
-
-type cateData = {
-  id: string;
-  name: string;
-  color: string;
-};
+import { CategoryBox } from "@/styles/calendar.style";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/stores/index";
+import { CategoryData, deleteCategory } from "@/stores/slices/category-slices";
+import { addSchedule } from "@/stores/slices/schedule-slices";
 
 export default function DetailModal({
   userOptions,
@@ -21,13 +20,22 @@ export default function DetailModal({
   selectedDate: string;
   setSelectedDate: React.Dispatch<React.SetStateAction<string | null>>;
 }) {
+  const dispatch = useDispatch<AppDispatch>();
+  const categoryList = useSelector((state: RootState) => state.categoryReducer);
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
   const [title, setTitle] = useState<string>("");
-  const [startValue, setStartValue] = useState<string | null>(null);
-  const [endValue, setEndValue] = useState<string | null>(null);
-  const [categoryList, setCategoryList] = useState<cateData[]>([]);
+  const [startValue, setStartValue] = useState<string>(
+    dayjs().format("YYYY-MM-DD HH:mm")
+  );
+  const [endValue, setEndValue] = useState<string>(
+    dayjs().format("YYYY-MM-DD HH:mm")
+  );
   const [categoryOpen, setCategoryOpen] = useState<string>("");
+  const [selectCategory, setSelectCategory] = useState<CategoryData | null>(
+    null
+  );
+  const [memo, setMemo] = useState<string>("");
 
   useEffect(() => {
     if (selectedDate === "add") {
@@ -39,30 +47,51 @@ export default function DetailModal({
     }
   }, [selectedDate]);
 
-  const categoryAdd = (name: string, color: string) => {
-    const list = [...categoryList];
-    const newObj = {
-      id: "",
-      name,
-      color,
-    };
-    list.push(newObj);
-    setCategoryList(list);
-  };
-
   useEffect(() => {
     console.log("categoryList:", categoryList);
   }, [categoryList]);
 
+  const saveSchedule = () => {
+    if (!title) {
+      alert("제목을 입력해주세요.");
+      return false;
+    }
+    if (new Date(startValue) > new Date(endValue)) {
+      alert("일정 시간을 다시 확인해주세요.");
+      return false;
+    }
+    if (!selectCategory) {
+      alert("카테고리를 선택해주세요.");
+      return false;
+    }
+    let randomStr = Math.random().toString(36).substring(2, 12);
+    dispatch(
+      addSchedule({
+        id: randomStr,
+        title,
+        startDate: startValue,
+        endDate: endValue,
+        category: selectCategory,
+        memo,
+        type: "",
+        turn: 0,
+        start: null,
+        end: null,
+      })
+    );
+    alert("등록되었습니다.");
+    setSelectedDate(null);
+  };
+
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full z-10">
       <div
-        className="w-full h-full absolute top-0 left-0 bg-black/30 backdrop-blur-[2px]"
+        className="w-full h-full absolute top-0 left-0 bg-black/30 backdrop-blur-[2px] z-30"
         onClick={() => {
           setSelectedDate(null);
         }}
       ></div>
-      <div className="sm:w-[640px] w-[90%] p-8 fixed border border-black border-solid h-[90%] top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-white overflow-hidden overflow-y-auto rounded-md">
+      <div className="sm:w-[640px] w-[90%] p-8 fixed border border-black border-solid h-[90%] top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-white overflow-hidden overflow-y-auto rounded-md z-40">
         <div
           className="absolute top-5 right-5 cursor-pointer"
           onClick={() => {
@@ -117,28 +146,40 @@ export default function DetailModal({
               }}
             />
           </div>
-          <div className="w-full h-24 border border-black border-solid rounded-lg mt-2 text-center">
+          <div className="w-full h-24 border border-black border-solid rounded-lg mt-2 text-center overflow-hidden overflow-y-auto">
             {categoryList.length > 0 ? (
-              <div className="w-full flex justify-between p-1">
+              <div className="w-full flex justify-start p-1 flex-wrap">
                 {categoryList.map((category, index) => {
                   return (
-                    <div
-                      className="w-1/4 p-2 flex justify-between rounded-lg text-left"
-                      style={{ border: `2px solid ${category.color}` }}
+                    <CategoryBox
+                      className={`w-[133px] p-2 flex justify-between rounded-lg text-left mx-1 my-2 cursor-pointer border border-solid border-gray-500 ${
+                        selectCategory?.color === category.color ? "active" : ""
+                      }`}
+                      color={category.color}
+                      onClick={() => {
+                        setSelectCategory(category);
+                      }}
                       key={index}
                     >
-                      <p className="w-1/2 text-sm">{category.name}</p>
+                      <p className="w-1/2 text-sm truncate">{category.name}</p>
                       <div
-                        className="w-5 h-5 border border-black border-solid rounded-md"
+                        className="w-6 h-6 border border-black border-solid rounded-md"
                         style={{ backgroundColor: category.color }}
                       />
 
                       <Icon
-                        className="w-5 h-5 cursor-pointer"
+                        className="w-5 h-5 cursor-pointer ml-2 mt-0.5"
                         icon="solar:close-circle-outline"
                         style={{ color: "#ff4444" }}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          if (selectCategory?.id === category.id) {
+                            setSelectCategory(null);
+                          }
+                          dispatch(deleteCategory(index));
+                        }}
                       />
-                    </div>
+                    </CategoryBox>
                   );
                 })}
               </div>
@@ -155,12 +196,19 @@ export default function DetailModal({
             className="w-full h-60 border border-black border-solid rounded-lg mt-2 p-3 text-base resize-none"
             name="schedule_memo"
             id="schedule_memo"
+            value={memo}
+            onChange={(e) => {
+              setMemo(e.target.value);
+            }}
             placeholder="메모를 남겨주세요."
           ></textarea>
         </div>
         <div
           className={`w-full mt-6 rounded-lg text-3xl text-center p-4 text-white font-bold cursor-pointer`}
           style={{ backgroundColor: userOptions.themeColor }}
+          onClick={() => {
+            saveSchedule();
+          }}
         >
           저 장
         </div>
@@ -170,7 +218,6 @@ export default function DetailModal({
           categoryOpen={categoryOpen}
           setCategoryOpen={setCategoryOpen}
           userOptions={userOptions}
-          complate={categoryAdd}
         />
       ) : (
         <></>

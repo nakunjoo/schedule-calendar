@@ -2,7 +2,6 @@ import { store } from "@/stores";
 import { css, styled } from "styled-components";
 
 const userOptions = store.getState().optionReducer.value;
-console.log("userOptions:", userOptions);
 
 export const OptionSwitch = styled.div`
   input {

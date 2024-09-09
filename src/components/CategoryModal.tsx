@@ -3,30 +3,33 @@ import React, { useState, useEffect } from "react";
 import { OptionState } from "@/stores/slices/option-slices";
 import { Icon } from "@iconify/react";
 import { ChromePicker } from "react-color";
+import { useDispatch } from "react-redux";
+import { AppDispatch } from "@/stores/index";
+import { addCategory, CategoryData } from "@/stores/slices/category-slices";
 
 export default function CategoryModal({
   categoryOpen,
   setCategoryOpen,
   userOptions,
-  complate,
 }: {
   categoryOpen: string;
   setCategoryOpen: React.Dispatch<React.SetStateAction<string>>;
   userOptions: OptionState;
-  complate: any;
 }) {
+  const dispatch = useDispatch<AppDispatch>();
+
   const [pickerOpen, setPickerOpen] = useState<boolean>(false);
-  const [categoryColor, setCategoryColor] = useState<string>("#ffffff");
+  const [categoryColor, setCategoryColor] = useState<string>("#000000");
   const [categoryName, setCategoryName] = useState<string>("");
   return (
     <div>
       <div
-        className="w-full h-full absolute top-0 left-0 bg-black/30"
+        className="w-full h-full absolute top-0 left-0 bg-black/30 z-40"
         onClick={() => {
           setCategoryOpen("");
         }}
       ></div>
-      <div className="sm:w-[540px] w-[90%] border border-black border-solid rounded-lg p-4 absolute top-[300px]  left-1/2 -translate-x-1/2 bg-white">
+      <div className="sm:w-[540px] w-[90%] border border-black border-solid z-40 rounded-lg p-4 absolute top-[300px]  left-1/2 -translate-x-1/2 bg-white">
         <div className="w-full">
           <div
             className="absolute top-5 right-5 cursor-pointer"
@@ -49,7 +52,7 @@ export default function CategoryModal({
               <input
                 className="w-[270px] border border-black border-solid p-2 rounded text-base"
                 type="text"
-                placeholder="카테고리명을 입력하세요."
+                placeholder="카테고리명을 입력해주세요."
                 value={categoryName}
                 onChange={(e) => {
                   setCategoryName(e.target.value);
@@ -101,7 +104,16 @@ export default function CategoryModal({
               className=" p-3 text-white rounded-md insline-block cursor-pointer"
               style={{ backgroundColor: userOptions.themeColor }}
               onClick={() => {
-                complate(categoryName, categoryColor);
+                if (!categoryName) {
+                  alert("카테고리명을 입력해주세요.");
+                  return false;
+                }
+                const data = {
+                  id: "",
+                  color: categoryColor,
+                  name: categoryName,
+                };
+                dispatch(addCategory(data));
                 setCategoryOpen("");
               }}
             >
