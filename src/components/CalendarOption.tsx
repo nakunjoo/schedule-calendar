@@ -4,6 +4,7 @@ import { AppDispatch } from "@/stores/index";
 import { OptionState, valueChange } from "@/stores/slices/option-slices";
 import { ChromePicker } from "react-color";
 import { OptionSwitch } from "@/styles/option.style";
+import { addOptionDBData } from "@/lib/db";
 
 export default function CalendarOption({
   userOptions,
@@ -16,6 +17,15 @@ export default function CalendarOption({
     userOptions.themeColor
   );
   const [prevBgColor, setPrevBgColor] = useState<string>(userOptions.bgColor);
+
+  useEffect(() => {
+    addOptionDBData(userOptions);
+  }, [
+    userOptions.holiday,
+    userOptions.anniversary,
+    userOptions.exquisiteness,
+    userOptions.lunar,
+  ]);
 
   const dispatch = useDispatch<AppDispatch>();
   return (
@@ -40,14 +50,21 @@ export default function CalendarOption({
                   event.stopPropagation();
                 }}
               >
+                <div
+                  className="fixed top-0 left-0 w-full h-full cursor-default"
+                  onClick={() => {
+                    dispatch(valueChange(["themeColor", prevThemeColor]));
+                    setThemeOpen(false);
+                  }}
+                />
                 <ChromePicker
-                  className="mx-auto mt-2 cursor-pointer"
+                  className="mx-auto mt-2 cursor-pointer relative z-20"
                   color={userOptions.themeColor}
                   onChange={(e) => {
                     dispatch(valueChange(["themeColor", e.hex]));
                   }}
                 />
-                <ul className="p-2 flex justify-end text-center cursor-default">
+                <ul className="p-2 flex justify-end text-center cursor-default relative z-20">
                   <li
                     className="p-2 border border-solid border-black rounded mr-4 cursor-pointer"
                     onClick={() => {
@@ -59,7 +76,8 @@ export default function CalendarOption({
                   </li>
                   <li
                     className="p-2 border border-solid border-black rounded cursor-pointer"
-                    onClick={() => {
+                    onClick={async () => {
+                      await addOptionDBData(userOptions);
                       setPrevThemeColor(userOptions.themeColor);
                       setThemeOpen(false);
                     }}
@@ -92,14 +110,21 @@ export default function CalendarOption({
                   event.stopPropagation();
                 }}
               >
+                <div
+                  className="fixed top-0 left-0 w-full h-full cursor-default"
+                  onClick={() => {
+                    dispatch(valueChange(["bgColor", prevBgColor]));
+                    setBgOpen(false);
+                  }}
+                />
                 <ChromePicker
-                  className="mx-auto mt-2 cursor-pointer"
+                  className="mx-auto mt-2 cursor-pointer relative z-20"
                   color={userOptions.bgColor}
                   onChange={(e) => {
                     dispatch(valueChange(["bgColor", e.hex]));
                   }}
                 />
-                <ul className="p-2 flex justify-end text-center cursor-default">
+                <ul className="p-2 flex justify-end text-center cursor-default relative z-20">
                   <li
                     className="p-2 border border-solid border-black rounded mr-4 cursor-pointer"
                     onClick={() => {
@@ -111,7 +136,8 @@ export default function CalendarOption({
                   </li>
                   <li
                     className="p-2 border border-solid border-black rounded cursor-pointer"
-                    onClick={() => {
+                    onClick={async () => {
+                      await addOptionDBData(userOptions);
                       setPrevBgColor(userOptions.bgColor);
                       setBgOpen(false);
                     }}
@@ -133,8 +159,8 @@ export default function CalendarOption({
               id="holiday_switch"
               className="switch"
               checked={userOptions.holiday}
-              onChange={(e) => {
-                dispatch(valueChange(["holiday", e.target.checked]));
+              onChange={async (e) => {
+                await dispatch(valueChange(["holiday", e.target.checked]));
               }}
             />
             <label htmlFor="holiday_switch"></label>

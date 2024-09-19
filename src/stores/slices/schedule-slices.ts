@@ -10,8 +10,8 @@ export type ScheduleData = {
   endDate: string;
   category: CategoryData;
   memo: string;
-  start: Date | null;
-  end: Date | null;
+  start: string;
+  end: string;
 };
 
 const initialState = [] as ScheduleData[];
@@ -24,13 +24,23 @@ export const schedules = createSlice({
       state.push(action.payload);
       return state;
     },
-    deleteSchedule: (state, action: PayloadAction<number>) => {
-      state.splice(action.payload, 1);
+    deleteSchedule: (state, action: PayloadAction<string>) => {
+      const newArr = [];
+      for (const schedule of state) {
+        if (action.payload !== schedule.id) {
+          newArr.push(schedule);
+        }
+      }
+      state = newArr;
+      return state;
+    },
+    setSchedule: (state, action: PayloadAction<ScheduleData[]>) => {
+      state = action.payload;
       return state;
     },
   },
 });
 
-export const { addSchedule, deleteSchedule } = schedules.actions;
+export const { addSchedule, deleteSchedule, setSchedule } = schedules.actions;
 
 export default schedules.reducer;

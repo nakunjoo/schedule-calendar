@@ -20,9 +20,13 @@ export const category = createSlice({
       state.splice(action.payload, 1);
       return state;
     },
+    setCategory: (state, action: PayloadAction<CategoryData[]>) => {
+      state = action.payload;
+      return state;
+    },
   },
 });
 
-export const { addCategory, deleteCategory } = category.actions;
+export const { addCategory, deleteCategory, setCategory } = category.actions;
 
 export default category.reducer;

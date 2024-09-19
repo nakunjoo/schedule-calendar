@@ -1,8 +1,18 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { Icon } from "@iconify/react";
-import { OptionState } from "@/stores/slices/option-slices";
 import { dayData } from "@/types/Celendar.types";
+
+import { OptionState } from "@/stores/slices/option-slices";
+import { ScheduleData, deleteSchedule } from "@/stores/slices/schedule-slices";
+
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/stores/index";
+
+import { deleteScheduleDB } from "@/lib/db";
+
+import { addMonths, startOfMonth } from "date-fns";
+
 import dayjs from "dayjs";
 import "dayjs/locale/ko";
 dayjs.locale("ko");
@@ -18,6 +28,32 @@ export default function DetailModal({
   setSelectDay: React.Dispatch<React.SetStateAction<dayData | null>>;
   setSelectedDate: React.Dispatch<React.SetStateAction<string | null>>;
 }) {
+  const dispatch = useDispatch<AppDispatch>();
+
+  const deleteHandler = async (schedule: ScheduleData) => {
+    const check = confirm("일정을 삭제 하시겠습니까?");
+    if (check) {
+      if (
+        dayjs(schedule.start).format("YYYY-MM") !==
+        dayjs(schedule.end).format("YYYY-MM")
+      ) {
+        const start = startOfMonth(new Date(schedule.start));
+        const end = startOfMonth(new Date(schedule.end));
+
+        for (let i = start; i <= end; i = addMonths(i, 1)) {
+          const date = dayjs(i).format("YYYY-MM");
+          await deleteScheduleDB(date, schedule.id);
+        }
+      } else {
+        const date = dayjs(schedule.start).format("YYYY-MM");
+        await deleteScheduleDB(date, schedule.id);
+      }
+      dispatch(deleteSchedule(schedule.id));
+      alert("일정이 삭제되었습니다.");
+    } else {
+      return false;
+    }
+  };
   return (
     <div className="w-full h-full z-10">
       <div
@@ -52,8 +88,16 @@ export default function DetailModal({
                 return (
                   <li
                     key={index}
-                    className="w-full h-38 my-4 rounded p-4 bg-[#eedeff] cursor-pointer"
+                    className="w-full h-38 my-4 rounded p-4 bg-[#eedeff] cursor-pointer relative"
                   >
+                    <Icon
+                      className="w-10 h-10 absolute top-3 right-3 z-20"
+                      icon="maki:waste-basket"
+                      style={{ color: userOptions.themeColor }}
+                      onClick={async () => {
+                        await deleteHandler(schedule);
+                      }}
+                    />
                     <div className="flex justify-start items-center">
                       <Icon
                         className="w-8 h-8 mr-2"

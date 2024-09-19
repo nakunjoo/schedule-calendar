@@ -7,6 +7,8 @@ import { useDispatch } from "react-redux";
 import { AppDispatch } from "@/stores/index";
 import { addCategory, CategoryData } from "@/stores/slices/category-slices";
 
+import { addCategoryDBData } from "@/lib/db";
+
 export default function CategoryModal({
   categoryOpen,
   setCategoryOpen,
@@ -53,6 +55,7 @@ export default function CategoryModal({
                 className="w-[270px] border border-black border-solid p-2 rounded text-base"
                 type="text"
                 placeholder="카테고리명을 입력해주세요."
+                maxLength={50}
                 value={categoryName}
                 onChange={(e) => {
                   setCategoryName(e.target.value);
@@ -103,16 +106,19 @@ export default function CategoryModal({
             <span
               className=" p-3 text-white rounded-md insline-block cursor-pointer"
               style={{ backgroundColor: userOptions.themeColor }}
-              onClick={() => {
+              onClick={async () => {
                 if (!categoryName) {
                   alert("카테고리명을 입력해주세요.");
                   return false;
                 }
+
+                let randomStr = Math.random().toString(36).substring(2, 12);
                 const data = {
-                  id: "",
+                  id: randomStr,
                   color: categoryColor,
                   name: categoryName,
                 };
+                await addCategoryDBData(data);
                 dispatch(addCategory(data));
                 setCategoryOpen("");
               }}

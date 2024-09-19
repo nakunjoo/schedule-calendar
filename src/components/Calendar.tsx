@@ -19,33 +19,45 @@ import dayjs from "dayjs";
 import { CalendarBodyRow, CalendarRowDiv } from "@/styles/calendar.style";
 import { dataServiceKey } from "@/configs/data.service";
 import axios from "axios";
+import { preventScroll, allowScroll } from "@/utils/scrollEvent";
 
 import ScheduleModal from "./ScheduleModal";
 import DetailModal from "./DetailModal";
 import CalendarOption from "./CalendarOption";
+import CategoryList from "./CategoryList";
 
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/stores/index";
-import { ScheduleData } from "@/stores/slices/schedule-slices";
-import { CategoryData } from "@/stores/slices/category-slices";
+import { getOptions, OptionState } from "@/stores/slices/option-slices";
+import { ScheduleData, setSchedule } from "@/stores/slices/schedule-slices";
+import { CategoryData, setCategory } from "@/stores/slices/category-slices";
 
 import {
   dayData,
   calendarDateData,
   lunarDateData,
 } from "@/types/Celendar.types";
-import { updateSelectDay } from "@/stores/slices/select-day-slices";
+
+import {
+  initDB,
+  getOptionDBData,
+  getCategoryDB,
+  getScheduleDB,
+} from "@/lib/db";
 
 export default function CalendarWrap() {
-  const dispatch = useDispatch<AppDispatch>;
+  const dispatch = useDispatch<AppDispatch>();
   const userOptions = useSelector(
     (state: RootState) => state.optionReducer.value
   );
-  const categoryList = useSelector((state: RootState) => state.categoryReducer);
+  const categoryList: CategoryData[] = useSelector(
+    (state: RootState) => state.categoryReducer
+  );
   const scheduleList = useSelector((state: RootState) => state.scheduleReducer);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectDay, setSelectDay] = useState<dayData | null>(null);
   const [addSchedule, setAddSchedule] = useState<string | null>(null);
+  const [categoryOpen, setCategoryOpen] = useState<boolean>(false);
   const date = ["일", "월", "화", "수", "목", "금", "토"];
   const [rows, setRows] = useState<dayData[][]>([]);
   const [holidayList, setHolidayList] = useState<
@@ -60,18 +72,55 @@ export default function CalendarWrap() {
   const [lunarList, setLunarList] = useState<lunarDateData[] | undefined>(
     undefined
   ); // 음력
+  const [isDBReady, setIsDBReady] = useState<boolean>(false);
+
+  const handleInitDB = async () => {
+    const status = await initDB();
+    setIsDBReady(status);
+  };
+
+  const handleGetDB = async () => {
+    const getOptionData = await getOptionDBData(userOptions);
+    const getCategoryData = await getCategoryDB();
+    await handleGetSchedule();
+
+    if (getOptionData) {
+      dispatch(getOptions(getOptionData));
+    }
+    if (getCategoryData) {
+      dispatch(setCategory(getCategoryData));
+    }
+  };
+
+  const handleGetSchedule = async () => {
+    const getScheduleData = await getScheduleDB(
+      dayjs(currentMonth).format("YYYY-MM")
+    );
+    if (getScheduleData) {
+      dispatch(setSchedule(getScheduleData.schedule));
+    }
+  };
+
+  useEffect(() => {
+    handleInitDB();
+  }, []);
+
+  useEffect(() => {
+    if (!isDBReady) return;
+    handleGetDB();
+  }, [isDBReady]);
 
   const [optionOpen, setOptionOpen] = useState(false);
 
   const solYear = format(currentMonth, "yyyy");
   const solMonth = format(currentMonth, "MM");
 
-  const getHoliDay = (holiday: boolean) => {
+  const getHoliDay = async (holiday: boolean) => {
     if (!holiday) {
       setHolidayList(undefined);
       return;
     }
-    axios
+    await axios
       .get(
         `http://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getHoliDeInfo?solYear=${solYear}&solMonth=${solMonth}&ServiceKey=${dataServiceKey}`
       )
@@ -173,6 +222,7 @@ export default function CalendarWrap() {
   };
 
   useEffect(() => {
+    handleGetSchedule();
     getHoliDay(userOptions.holiday);
     getAnniversary(userOptions.anniversary);
     getExquisiteness(userOptions.exquisiteness);
@@ -225,8 +275,8 @@ export default function CalendarWrap() {
               memo: schedule.memo,
               type: "between",
               turn: 0,
-              start,
-              end,
+              start: dayjs(start).format("YYYY-MM-DD HH:mm"),
+              end: dayjs(end).format("YYYY-MM-DD HH:mm"),
             };
             if (
               dayjs(i).format("YYYY-MM-DD") ===
@@ -251,11 +301,13 @@ export default function CalendarWrap() {
     }
 
     const sortSchedule = (schedules: ScheduleData[]) => {
-      return schedules.sort((a, b) => new Date(a.start) - new Date(b.start));
+      return schedules.sort(
+        (a, b): number => +new Date(a.start) - +new Date(b.start)
+      );
     };
+    const startArrs: any = {};
     while (day <= endDate) {
       index++;
-      const startArrs: any = {};
       for (let i = 0; i < 7; i++) {
         const formatDate = dayjs(day).format("YYYYMMDD");
         const schedule_bar = [];
@@ -332,7 +384,7 @@ export default function CalendarWrap() {
           name: "",
           isHoliday: "",
         };
-        if (holidayList) {
+        if (userOptions.holiday && holidayList) {
           for (const item of holidayList) {
             if (formatDate === String(item.locdate)) {
               holiday.name = item.dateName;
@@ -341,7 +393,7 @@ export default function CalendarWrap() {
           }
         }
         let anniversary = "";
-        if (anniversaryList) {
+        if (userOptions.anniversary && anniversaryList) {
           for (const item of anniversaryList) {
             if (formatDate === String(item.locdate)) {
               anniversary = item.dateName;
@@ -349,7 +401,7 @@ export default function CalendarWrap() {
           }
         }
         let exquisiteness = "";
-        if (exquisitenessList) {
+        if (userOptions.exquisiteness && exquisitenessList) {
           for (const item of exquisitenessList) {
             if (formatDate === String(item.locdate)) {
               exquisiteness = item.dateName;
@@ -358,7 +410,7 @@ export default function CalendarWrap() {
         }
 
         let lunar = "";
-        if (lunarList) {
+        if (userOptions.lunar && lunarList) {
           for (const item of lunarList) {
             if (
               formatDate === `${item.solYear}${item.solMonth}${item.solDay}`
@@ -423,16 +475,9 @@ export default function CalendarWrap() {
   useEffect(() => {
     setOptionOpen(false);
     if (selectDay || addSchedule) {
-      document.body.style.cssText = `
-        position: fixed; 
-        top: -${window.scrollY}px;
-        overflow-y: scroll;
-        width: 100%;
-      `;
+      preventScroll();
     } else {
-      const scrollY = document.body.style.top;
-      document.body.style.cssText = "";
-      window.scrollTo(0, parseInt(scrollY || "0", 10) * -1);
+      allowScroll();
     }
   }, [selectDay, addSchedule]);
 
@@ -475,7 +520,45 @@ export default function CalendarWrap() {
                   }}
                 />
               </div>
-              <div className="flex justify-start  relative">
+              <div
+                className="max-w-3/4 relative cursor-pointer"
+                onClick={() => {
+                  setCategoryOpen(!categoryOpen);
+                }}
+              >
+                <div className="w-full flex justify-start relative overflow-hidden">
+                  {categoryList.map((category, index) => {
+                    return (
+                      <div key={index} className="w-full">
+                        {index < 8 ? (
+                          <div className="p-1 flex justify-start items-center">
+                            <div
+                              className="w-5 h-5 rounded-full border border-black border-solid mr-1"
+                              style={{ backgroundColor: category.color }}
+                            ></div>
+                            <span className="text-base">{category.name}</span>
+                          </div>
+                        ) : (
+                          <></>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                {categoryList.length > 8 ? (
+                  <div className="absolute top-1 -right-6 text-base">
+                    +{categoryList.length - 8}
+                  </div>
+                ) : (
+                  <></>
+                )}
+                {categoryOpen ? (
+                  <CategoryList categoryList={categoryList} />
+                ) : (
+                  <></>
+                )}
+              </div>
+              <div className="flex justify-start relative">
                 <span>
                   <Icon
                     className="cursor-pointer w-8 h-8 mr-2"
@@ -621,7 +704,7 @@ export default function CalendarWrap() {
                                     : "",
                               }}
                             >
-                              ToDay
+                              Today
                             </span>
                             <p className="text-sx text-gray-400 -mt-1 text-right">
                               {day.lunar}

@@ -12,7 +12,7 @@ export type OptionState = {
   anniversary: boolean;
   exquisiteness: boolean;
   lunar: boolean;
-  uId: string;
+  id: string;
 };
 
 type valueData = [type: string, value: string | boolean];
@@ -26,7 +26,7 @@ const initialState = {
     anniversary: false,
     exquisiteness: false,
     lunar: false,
-    uId: "",
+    id: "",
   } as OptionState,
 } as InitialState;
 
@@ -36,12 +36,18 @@ export const option = createSlice({
   reducers: {
     valueChange: (state, action: PayloadAction<valueData>) => {
       const type = action.payload[0];
-      state.value[type] = action.payload[1];
+      const value: any = { ...state.value };
+      value[type] = action.payload[1];
+      state.value = value;
+      return state;
+    },
+    getOptions: (state, action: PayloadAction<any>) => {
+      state.value = action.payload;
       return state;
     },
   },
 });
 
-export const { valueChange } = option.actions;
+export const { valueChange, getOptions } = option.actions;
 
 export default option.reducer;

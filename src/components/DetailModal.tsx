@@ -9,7 +9,9 @@ import { CategoryBox } from "@/styles/calendar.style";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/stores/index";
 import { CategoryData, deleteCategory } from "@/stores/slices/category-slices";
-import { addSchedule } from "@/stores/slices/schedule-slices";
+import { addSchedule, ScheduleData } from "@/stores/slices/schedule-slices";
+import { addMonths, startOfMonth } from "date-fns";
+import { addScheduleDBData, deleteCategoryDB } from "@/lib/db";
 
 export default function DetailModal({
   userOptions,
@@ -47,11 +49,7 @@ export default function DetailModal({
     }
   }, [selectedDate]);
 
-  useEffect(() => {
-    console.log("categoryList:", categoryList);
-  }, [categoryList]);
-
-  const saveSchedule = () => {
+  const saveSchedule = async () => {
     if (!title) {
       alert("제목을 입력해주세요.");
       return false;
@@ -65,20 +63,39 @@ export default function DetailModal({
       return false;
     }
     let randomStr = Math.random().toString(36).substring(2, 12);
-    dispatch(
-      addSchedule({
-        id: randomStr,
-        title,
-        startDate: startValue,
-        endDate: endValue,
-        category: selectCategory,
-        memo,
-        type: "",
-        turn: 0,
-        start: null,
-        end: null,
-      })
-    );
+    const schedule_data = {
+      id: randomStr,
+      title,
+      startDate: startValue,
+      endDate: endValue,
+      category: selectCategory,
+      memo,
+      type: "",
+      turn: 0,
+      start: startValue,
+      end: endValue,
+    } as ScheduleData;
+    if (
+      dayjs(startValue).format("YYYY-MM") !== dayjs(endValue).format("YYYY-MM")
+    ) {
+      const start = startOfMonth(new Date(startValue));
+      const end = startOfMonth(new Date(endValue));
+      for (let i = start; i <= end; i = addMonths(i, 1)) {
+        const date = dayjs(i).format("YYYY-MM");
+        const addData = {
+          DATE: date,
+          schedule: [schedule_data],
+        };
+        await addScheduleDBData(date, addData);
+      }
+    } else {
+      const addData = {
+        DATE: dayjs(startValue).format("YYYY-MM"),
+        schedule: [schedule_data],
+      };
+      await addScheduleDBData(addData.DATE, addData);
+    }
+    dispatch(addSchedule(schedule_data));
     alert("등록되었습니다.");
     setSelectedDate(null);
   };
@@ -176,6 +193,8 @@ export default function DetailModal({
                           if (selectCategory?.id === category.id) {
                             setSelectCategory(null);
                           }
+
+                          deleteCategoryDB(category.id);
                           dispatch(deleteCategory(index));
                         }}
                       />
