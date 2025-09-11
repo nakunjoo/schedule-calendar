@@ -1,8 +1,14 @@
 import CalendarWrap from "@/components/Calendar";
+<<<<<<< HEAD
 import AuthButton from "@/components/AuthButton";
 import { useSelector } from "react-redux";
 import { RootState } from "@/stores/index";
 import { useAuth } from "@/contexts/AuthContext";
+=======
+import Footer from "@/components/Footer";
+import { useSelector } from "react-redux";
+import { RootState } from "@/stores/index";
+>>>>>>> master
 
 export default function Calendars() {
   const bgColor = useSelector(
@@ -19,6 +25,7 @@ export default function Calendars() {
   }
 
   return (
+<<<<<<< HEAD
     <div className={`w-full min-h-screen`} style={{ backgroundColor: bgColor }}>
       <div className="w-full flex justify-end p-4">
         <AuthButton />
@@ -33,6 +40,13 @@ export default function Calendars() {
           </div>
         </div>
       )}
+=======
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: bgColor }}>
+      <div className="flex-1">
+        <CalendarWrap />
+      </div>
+      <Footer />
+>>>>>>> master
     </div>
   );
 }

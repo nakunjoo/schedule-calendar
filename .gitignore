@@ -11,7 +11,10 @@
 # production
 /build
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> master
 /.next/
 
 app.yaml
