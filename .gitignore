@@ -11,8 +11,6 @@
 # production
 /build
 
-/src/configs
-
 /.next/
 
 app.yaml
