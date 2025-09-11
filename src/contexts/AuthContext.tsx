@@ -22,6 +22,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Get initial session
     const getSession = async () => {
+  console.log('${window.location.origin}/auth/callback:', `${window.location.origin}/auth/callback`)
       console.log('Getting initial session...');
       const { data: { session }, error } = await supabase.auth.getSession();
       if (error) {
@@ -66,7 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
+          redirectTo: `https://mleenaivuhqyrylmqrme.supabase.co/auth/v1/callback`
         }
       });
       

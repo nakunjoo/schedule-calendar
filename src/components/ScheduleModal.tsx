@@ -89,12 +89,17 @@ export default function DetailModal({
                   <li
                     key={index}
                     className="w-full h-38 my-4 rounded p-4 bg-[#eedeff] cursor-pointer relative"
+                    onClick={() => {
+                      setSelectedDate(`edit:${schedule.id}`);
+                      setSelectDay(null);
+                    }}
                   >
                     <Icon
                       className="w-10 h-10 absolute top-3 right-3 z-20"
                       icon="maki:waste-basket"
                       style={{ color: userOptions.themeColor }}
-                      onClick={async () => {
+                      onClick={async (e) => {
+                        e.stopPropagation();
                         await deleteHandler(schedule);
                       }}
                     />

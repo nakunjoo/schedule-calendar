@@ -9,9 +9,9 @@ import { CategoryBox } from "@/styles/calendar.style";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/stores/index";
 import { CategoryData, deleteCategory } from "@/stores/slices/category-slices";
-import { addSchedule, ScheduleData } from "@/stores/slices/schedule-slices";
+import { addSchedule, updateSchedule, ScheduleData } from "@/stores/slices/schedule-slices";
 import { addMonths, startOfMonth } from "date-fns";
-import { addScheduleDBData, deleteCategoryDB } from "@/lib/db";
+import { addScheduleDBData, updateScheduleDBData, deleteCategoryDB } from "@/lib/db";
 
 export default function DetailModal({
   userOptions,
@@ -24,6 +24,7 @@ export default function DetailModal({
 }) {
   const dispatch = useDispatch<AppDispatch>();
   const categoryList = useSelector((state: RootState) => state.categoryReducer);
+  const scheduleList = useSelector((state: RootState) => state.scheduleReducer);
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
   const [title, setTitle] = useState<string>("");
@@ -38,16 +39,46 @@ export default function DetailModal({
     null
   );
   const [memo, setMemo] = useState<string>("");
+  const [isEditMode, setIsEditMode] = useState<boolean>(false);
+  const [editingSchedule, setEditingSchedule] = useState<ScheduleData | null>(null);
 
   useEffect(() => {
     if (selectedDate === "add") {
+      setIsEditMode(false);
+      setEditingSchedule(null);
+      setTitle("");
+      setMemo("");
+      setSelectCategory(null);
       setStartDate(dayjs().format("YYYY-MM-DD HH:mm"));
       setEndDate(dayjs().format("YYYY-MM-DD HH:mm"));
+      setStartValue(dayjs().format("YYYY-MM-DD HH:mm"));
+      setEndValue(dayjs().format("YYYY-MM-DD HH:mm"));
+    } else if (selectedDate.startsWith("edit:")) {
+      const scheduleId = selectedDate.replace("edit:", "");
+      const schedule = scheduleList.find(s => s.id === scheduleId);
+      if (schedule) {
+        setIsEditMode(true);
+        setEditingSchedule(schedule);
+        setTitle(schedule.title);
+        setMemo(schedule.memo);
+        setSelectCategory(schedule.category);
+        setStartDate(schedule.startDate);
+        setEndDate(schedule.endDate);
+        setStartValue(schedule.startDate);
+        setEndValue(schedule.endDate);
+      }
     } else {
+      setIsEditMode(false);
+      setEditingSchedule(null);
+      setTitle("");
+      setMemo("");
+      setSelectCategory(null);
       setStartDate(dayjs(selectedDate).format("YYYY-MM-DD HH:mm"));
       setEndDate(dayjs(selectedDate).format("YYYY-MM-DD HH:mm"));
+      setStartValue(dayjs(selectedDate).format("YYYY-MM-DD HH:mm"));
+      setEndValue(dayjs(selectedDate).format("YYYY-MM-DD HH:mm"));
     }
-  }, [selectedDate]);
+  }, [selectedDate, scheduleList]);
 
   const saveSchedule = async () => {
     if (!title) {
@@ -62,42 +93,68 @@ export default function DetailModal({
       alert("카테고리를 선택해주세요.");
       return false;
     }
-    let randomStr = Math.random().toString(36).substring(2, 12);
-    const schedule_data = {
-      id: randomStr,
-      title,
-      startDate: startValue,
-      endDate: endValue,
-      category: selectCategory,
-      memo,
-      type: "",
-      turn: 0,
-      start: startValue,
-      end: endValue,
-    } as ScheduleData;
-    if (
-      dayjs(startValue).format("YYYY-MM") !== dayjs(endValue).format("YYYY-MM")
-    ) {
-      const start = startOfMonth(new Date(startValue));
-      const end = startOfMonth(new Date(endValue));
-      for (let i = start; i <= end; i = addMonths(i, 1)) {
-        const date = dayjs(i).format("YYYY-MM");
-        const addData = {
-          DATE: date,
-          schedule: [schedule_data],
-        };
-        await addScheduleDBData(date, addData);
+
+    if (isEditMode && editingSchedule) {
+      // 수정 모드
+      const updated_schedule = {
+        ...editingSchedule,
+        title,
+        startDate: startValue,
+        endDate: endValue,
+        category: selectCategory,
+        memo,
+        start: startValue,
+        end: endValue,
+      } as ScheduleData;
+
+      const result = await updateScheduleDBData(editingSchedule.id, updated_schedule);
+      if (result) {
+        dispatch(updateSchedule(result));
+        alert("일정이 수정되었습니다.");
+        setSelectedDate(null);
+      } else {
+        alert("일정 수정에 실패했습니다.");
       }
     } else {
-      const addData = {
-        DATE: dayjs(startValue).format("YYYY-MM"),
-        schedule: [schedule_data],
-      };
-      await addScheduleDBData(addData.DATE, addData);
+      // 새 일정 추가
+      let randomStr = Math.random().toString(36).substring(2, 12);
+      const schedule_data = {
+        id: randomStr,
+        title,
+        startDate: startValue,
+        endDate: endValue,
+        category: selectCategory,
+        memo,
+        type: "",
+        turn: 0,
+        start: startValue,
+        end: endValue,
+      } as ScheduleData;
+      
+      if (
+        dayjs(startValue).format("YYYY-MM") !== dayjs(endValue).format("YYYY-MM")
+      ) {
+        const start = startOfMonth(new Date(startValue));
+        const end = startOfMonth(new Date(endValue));
+        for (let i = start; i <= end; i = addMonths(i, 1)) {
+          const date = dayjs(i).format("YYYY-MM");
+          const addData = {
+            DATE: date,
+            schedule: [schedule_data],
+          };
+          await addScheduleDBData(date, addData);
+        }
+      } else {
+        const addData = {
+          DATE: dayjs(startValue).format("YYYY-MM"),
+          schedule: [schedule_data],
+        };
+        await addScheduleDBData(addData.DATE, addData);
+      }
+      dispatch(addSchedule(schedule_data));
+      alert("등록되었습니다.");
+      setSelectedDate(null);
     }
-    dispatch(addSchedule(schedule_data));
-    alert("등록되었습니다.");
-    setSelectedDate(null);
   };
 
   return (
@@ -127,7 +184,7 @@ export default function DetailModal({
             icon="mingcute:schedule-fill"
             style={{ color: userOptions.themeColor }}
           />
-          {selectedDate === "add" ? "일정 추가" : "일정 상세"}
+          {isEditMode ? "일정 수정" : selectedDate === "add" ? "일정 추가" : "일정 상세"}
         </h2>
         <div className="w-full mt-4">
           <h3 className="text-xl font-bold">제목</h3>
@@ -229,7 +286,7 @@ export default function DetailModal({
             saveSchedule();
           }}
         >
-          저 장
+          {isEditMode ? "수 정" : "저 장"}
         </div>
       </div>
       {categoryOpen ? (

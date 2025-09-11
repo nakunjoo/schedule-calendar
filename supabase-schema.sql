@@ -5,8 +5,8 @@
 
 -- Options table (replaces Options store) - user-specific settings
 CREATE TABLE IF NOT EXISTS options (
-  id TEXT PRIMARY KEY DEFAULT '',
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
   calendar_view TEXT,
   theme TEXT,
   theme_color TEXT DEFAULT '#aa5fd3',
@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS options (
 
 -- Categories table (replaces Category store) - user-specific categories
 CREATE TABLE IF NOT EXISTS categories (
-  id TEXT PRIMARY KEY,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   color TEXT NOT NULL,
@@ -32,13 +32,13 @@ CREATE TABLE IF NOT EXISTS categories (
 
 -- Schedules table (replaces Schedule store) - user-specific schedules
 CREATE TABLE IF NOT EXISTS schedules (
-  id TEXT PRIMARY KEY,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   date TEXT NOT NULL,
   title TEXT NOT NULL,
   start_time TEXT,
   end_time TEXT,
-  category_id TEXT REFERENCES categories(id),
+  category_id UUID REFERENCES categories(id),
   description TEXT,
   type TEXT DEFAULT 'schedule',
   turn INTEGER DEFAULT 0,
@@ -122,3 +122,41 @@ CREATE TRIGGER update_categories_updated_at
 CREATE TRIGGER update_schedules_updated_at 
   BEFORE UPDATE ON schedules 
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Function to create default options for new users
+CREATE OR REPLACE FUNCTION create_default_options()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.options (
+    id,
+    user_id,
+    calendar_view,
+    theme,
+    theme_color,
+    bg_color,
+    language,
+    holiday,
+    anniversary,
+    exquisiteness,
+    lunar
+  ) VALUES (
+    gen_random_uuid(),
+    NEW.id,
+    'month',
+    'light',
+    '#aa5fd3',
+    '#c5e4f7',
+    'Ko',
+    true,
+    false,
+    false,
+    false
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger to automatically create default options when a new user signs up
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION create_default_options();

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Icon } from "@iconify/react";
 import {
   format,
@@ -58,8 +58,7 @@ export default function CalendarWrap() {
   const [selectDay, setSelectDay] = useState<dayData | null>(null);
   const [addSchedule, setAddSchedule] = useState<string | null>(null);
   const [categoryOpen, setCategoryOpen] = useState<boolean>(false);
-  const date = ["일", "월", "화", "수", "목", "금", "토"];
-  const [rows, setRows] = useState<dayData[][]>([]);
+  const date = useMemo(() => ["일", "월", "화", "수", "목", "금", "토"], []);
   const [holidayList, setHolidayList] = useState<
     calendarDateData[] | undefined
   >(undefined); // 국경일
@@ -206,7 +205,7 @@ export default function CalendarWrap() {
     }
     axios
       .get(
-        `http://apis.data.go.kr/B090041/openapi/service/LrsrCldInfoService/getLunCalInfo?solYear=${solYear}&solMonth=${solMonth}&ServiceKey=${dataServiceKey}`
+        `http://apis.data.go.kr/B090041/openapi/service/LrsrCldInfoService/getLunCalInfo?solYear=${solYear}&solMonth=${solMonth}&numOfRows=31&ServiceKey=${dataServiceKey}`
       )
       .then((res) => {
         let items = res.data?.response?.body?.items?.item;
@@ -245,12 +244,25 @@ export default function CalendarWrap() {
     getLunar(userOptions.lunar);
   }, [userOptions.lunar]);
 
-  useEffect(() => {
+  // 메모이제이션된 달력 날짜 계산
+  const calendarDates = useMemo(() => {
     const monthStart = startOfMonth(currentMonth);
     const monthEnd = endOfMonth(monthStart);
-    const toDay = new Date();
     const startDate = startOfWeek(monthStart);
     const endDate = endOfWeek(monthEnd);
+    
+    return {
+      monthStart,
+      monthEnd,
+      startDate,
+      endDate,
+      toDay: new Date()
+    };
+  }, [currentMonth]);
+
+  // 메모이제이션된 달력 rows 계산
+  const memoizedRows = useMemo(() => {
+    const { monthStart, monthEnd, startDate, endDate, toDay } = calendarDates;
     let days = [];
     let rowArr = [];
     let day = startDate;
@@ -441,36 +453,240 @@ export default function CalendarWrap() {
           schedule_circle,
         };
 
-        if (selectDay) {
-          if (dayjs(selectDay.day).format("YYYYMMDD") === formatDate) {
-            setSelectDay(dayData);
-          }
-        }
-
         days.push(dayData);
         day = addDays(day, 1);
       }
       rowArr.push(days);
       days = [];
     }
-    setRows(rowArr);
+    return rowArr;
   }, [
+    calendarDates,
     holidayList,
     anniversaryList,
     exquisitenessList,
     lunarList,
     scheduleList,
+    userOptions.anniversary,
+    userOptions.exquisiteness,
+    userOptions.holiday,
+    userOptions.lunar
   ]);
 
-  // 버튼 클릭시 이벤트
-  const arrowBtnHandler = (type: string) => {
+
+  useEffect(() => {
+    if (selectDay && memoizedRows.length > 0) {
+      for (const rowDays of memoizedRows) {
+        for (const day of rowDays) {
+          if (dayjs(selectDay.day).format("YYYYMMDD") === day.formatDate) {
+            setSelectDay(day);
+            return;
+          }
+        }
+      }
+    }
+  }, [memoizedRows, selectDay]);
+
+  // 메모이제이션된 버튼 클릭 이벤트
+  const arrowBtnHandler = useCallback((type: string) => {
     setOptionOpen(false);
     if (type === "prev") {
       setCurrentMonth(subMonths(currentMonth, 1));
     } else {
       setCurrentMonth(addMonths(currentMonth, 1));
     }
-  };
+  }, [currentMonth]);
+
+  // 메모이제이션된 달력 헤더
+  const calendarHeader = useMemo(() => (
+    <div className="w-full flex justify-between border-b border-black border-solid">
+      {date.map((value, index) => (
+        <div
+          key={index}
+          className={`${
+            index === 0 ? "" : "border-l"
+          } w-full text-center p-1 border-black border-solid font-bold`}
+        >
+          <span
+            className={
+              index === 0
+                ? "text-red-600"
+                : index === 6
+                ? "text-blue-600"
+                : "text-black"
+            }
+          >
+            {value}
+          </span>
+        </div>
+      ))}
+    </div>
+  ), [date]);
+
+  // 메모이제이션된 달력 바디
+  const calendarBody = useMemo(() => (
+    <div className="w-full overflow-hidden">
+      {memoizedRows.map((days, index) => (
+        <CalendarBodyRow
+          key={`row-${index}`}
+          className="border-b border-black border-solid justify-between flex"
+        >
+          {days.map((day: dayData, i: number) => {
+              const formattedDate = format(day.day, "d");
+              return (
+                <CalendarRowDiv
+                  className={`${
+                    i === 0 ? "" : "border-l"
+                  } border-black border-solid box-content text-left p-1 w-full h-36 cursor-pointer ${
+                    day.state
+                  } relative`}
+                  id={`date-${day.formatDate}`}
+                  key={`day-${i}`}
+                  onClick={() => {
+                    setSelectDay(day);
+                  }}
+                >
+                  <span
+                    className={`
+                      ${
+                        format(currentMonth, "M") !== format(day.day, "M")
+                          ? "text not-valid"
+                          : ""
+                      }
+                      ${
+                        day.state === "disabled"
+                          ? "text-gray-500"
+                          : i === 0
+                          ? "text-red-600"
+                          : i === 6
+                          ? "text-blue-600"
+                          : day.holiday.isHoliday === "Y"
+                          ? "text-red-600"
+                          : "text-black"
+                      }
+                      text-base
+                      day
+                    `}
+                    style={{
+                      backgroundColor:
+                        day.state === "selected"
+                          ? userOptions.themeColor
+                          : "",
+                    }}
+                  >
+                    {formattedDate}
+                  </span>
+                  <span
+                    className={`
+                      ${
+                        format(currentMonth, "M") !== format(day.day, "M")
+                          ? "text not-valid"
+                          : ""
+                      }
+                      ${
+                        day.state === "disabled"
+                          ? "text-gray-500"
+                          : i === 0
+                          ? "text-red-600"
+                          : i === 6
+                          ? "text-blue-600"
+                          : day.holiday.isHoliday === "Y"
+                          ? "text-red-600"
+                          : "text-black"
+                      }
+                      text-base
+                      ml-1
+                      mr-1
+                    `}
+                  >
+                    {day.holiday.name}
+                  </span>
+                  <span className="text-xs">{day.exquisiteness}</span>
+                  <p className="text-xs">{day.anniversary}</p>
+                  {day.state === "selected" ? (
+                    <span className="absolute right-3 top-0">
+                      <span
+                        className="today text-base"
+                        style={{
+                          color:
+                            day.state === "selected"
+                              ? userOptions.themeColor
+                              : "",
+                        }}
+                      >
+                        Today
+                      </span>
+                      <p className="text-sx text-gray-400 -mt-1 text-right">
+                        {day.lunar}
+                      </p>
+                    </span>
+                  ) : (
+                    <span className="absolute right-2 top-1 text-sx text-gray-400">
+                      {day.lunar}
+                    </span>
+                  )}
+                  <div className="absolute w-full h-6 top-[45px] left-0 z-10">
+                    {day.schedule_bar.map((schedule, num) => {
+                      return (
+                        <div key={num}>
+                          {schedule.turn > 2 ? (
+                            <div className="absolute top-[-15px]  bg-white right-0.5 border text-xs">
+                              +{schedule.turn - 2}
+                            </div>
+                          ) : (
+                            <div
+                              className={`w-[101%] absolute left-0 h-4 mt-0.5 overflow-hidden ${
+                                schedule.type === "start"
+                                  ? "ml-1 rounded-l-xl"
+                                  : ""
+                              } ${
+                                schedule.type === "end"
+                                  ? "-ml-2 rounded-r-xl"
+                                  : ""
+                              }`}
+                              style={{
+                                backgroundColor: schedule.category.color,
+                                top: `${schedule.turn * 20}px`,
+                              }}
+                            >
+                              {day.state === "disabled" && (
+                                <div className="w-full h-full relative z-50 bg-[rgba(0,0,0,0.3)]"></div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    <div className="absolute w-full h-6 top-[65px] left-0 z-10">
+                      {day.schedule_circle.map((schedule, num) => {
+                        return (
+                          <div key={num} className="inline-block">
+                            {num > 4 ? (
+                              <div className="absolute top-[0px]  bg-white right-0.5 border text-xs">
+                                +{num - 4}
+                              </div>
+                            ) : (
+                              <div
+                                className="w-8 h-8 mt-0.5 ml-2 rounded-full"
+                                style={{
+                                  backgroundColor:
+                                    schedule.category.color,
+                                  opacity: day.state === "disabled" ? 0.3 : 1,
+                                }}
+                              ></div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </CalendarRowDiv>
+              );
+            })}
+        </CalendarBodyRow>
+      ))}
+    </div>
+  ), [memoizedRows, currentMonth, userOptions.themeColor]);
 
   useEffect(() => {
     setOptionOpen(false);
@@ -588,190 +804,9 @@ export default function CalendarWrap() {
             </div>
           </div>
           {/* calendar-days */}
-          <div className="w-full flex justify-between border-b border-black border-solid">
-            {date.map((value, index) => {
-              return (
-                <div
-                  key={index}
-                  className={`${
-                    index === 0 ? "" : "border-l"
-                  } w-full text-center p-1 
-                  border-black border-solid font-bold`}
-                >
-                  <span
-                    className={
-                      index === 0
-                        ? "text-red-600"
-                        : index === 6
-                        ? "text-blue-600"
-                        : "text-black"
-                    }
-                  >
-                    {value}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+          {calendarHeader}
           {/* calendar-body */}
-          <div className="w-full overflow-hidden">
-            {rows.map((days, index) => {
-              return (
-                <CalendarBodyRow
-                  key={`row-${index}`}
-                  className="border-b border-black border-solid justify-between flex"
-                >
-                  {days.map((day: dayData, i: number) => {
-                    const formattedDate = format(day.day, "d");
-                    return (
-                      <CalendarRowDiv
-                        className={`${
-                          i === 0 ? "" : "border-l"
-                        } border-black border-solid box-content text-left p-1 w-full h-36 cursor-pointer ${
-                          day.state
-                        } relative`}
-                        id={`date-${day.formatDate}`}
-                        key={`day-${i}`}
-                        onClick={() => {
-                          setSelectDay(day);
-                        }}
-                      >
-                        <span
-                          className={`
-                            ${
-                              format(currentMonth, "M") !== format(day.day, "M")
-                                ? "text not-valid"
-                                : ""
-                            }
-                            ${
-                              day.state === "disabled"
-                                ? "text-gray-500"
-                                : i === 0
-                                ? "text-red-600"
-                                : i === 6
-                                ? "text-blue-600"
-                                : day.holiday.isHoliday === "Y"
-                                ? "text-red-600"
-                                : "text-black"
-                            }
-                            text-base
-                            day
-                          `}
-                          style={{
-                            backgroundColor:
-                              day.state === "selected"
-                                ? userOptions.themeColor
-                                : "",
-                          }}
-                        >
-                          {formattedDate}
-                        </span>
-                        <span
-                          className={`
-                            ${
-                              format(currentMonth, "M") !== format(day.day, "M")
-                                ? "text not-valid"
-                                : ""
-                            }
-                            ${
-                              day.state === "disabled"
-                                ? "text-gray-500"
-                                : i === 0
-                                ? "text-red-600"
-                                : i === 6
-                                ? "text-blue-600"
-                                : day.holiday.isHoliday === "Y"
-                                ? "text-red-600"
-                                : "text-black"
-                            }
-                            text-base
-                            ml-1
-                            mr-1
-                          `}
-                        >
-                          {day.holiday.name}
-                        </span>
-                        <span className="text-xs">{day.exquisiteness}</span>
-                        <p className="text-xs">{day.anniversary}</p>
-                        {day.state === "selected" ? (
-                          <span className="absolute right-3 top-0">
-                            <span
-                              className="today text-base"
-                              style={{
-                                color:
-                                  day.state === "selected"
-                                    ? userOptions.themeColor
-                                    : "",
-                              }}
-                            >
-                              Today
-                            </span>
-                            <p className="text-sx text-gray-400 -mt-1 text-right">
-                              {day.lunar}
-                            </p>
-                          </span>
-                        ) : (
-                          <span className="absolute right-2 top-1 text-sx text-gray-400">
-                            {day.lunar}
-                          </span>
-                        )}
-                        <div className="absolute w-full h-6 top-[45px] left-0 z-10">
-                          {day.schedule_bar.map((schedule, num) => {
-                            return (
-                              <div key={num}>
-                                {schedule.turn > 2 ? (
-                                  <div className="absolute top-[-15px]  bg-white right-0.5 border text-xs">
-                                    +{schedule.turn - 2}
-                                  </div>
-                                ) : (
-                                  <div
-                                    className={`w-[101%] absolute left-0 h-4 mt-0.5 ${
-                                      schedule.type === "start"
-                                        ? "ml-1 rounded-l-xl"
-                                        : ""
-                                    } ${
-                                      schedule.type === "end"
-                                        ? "-ml-2 rounded-r-xl"
-                                        : ""
-                                    }`}
-                                    style={{
-                                      backgroundColor: schedule.category.color,
-                                      top: `${schedule.turn * 20}px`,
-                                    }}
-                                  ></div>
-                                )}
-                              </div>
-                            );
-                          })}
-                          <div className="absolute w-full h-6 top-[65px] left-0 z-10">
-                            {day.schedule_circle.map((schedule, num) => {
-                              return (
-                                <div key={num} className="inline-block">
-                                  {num > 4 ? (
-                                    <div className="absolute top-[0px]  bg-white right-0.5 border text-xs">
-                                      +{num - 4}
-                                    </div>
-                                  ) : (
-                                    <div
-                                      className="w-8 h-8 mt-0.5 ml-2 rounded-full"
-                                      style={{
-                                        backgroundColor:
-                                          schedule.category.color,
-                                      }}
-                                    ></div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      </CalendarRowDiv>
-                    );
-                  })}
-                </CalendarBodyRow>
-              );
-            })}
-          </div>
+          {calendarBody}
         </div>
       </div>
       {selectDay ? (

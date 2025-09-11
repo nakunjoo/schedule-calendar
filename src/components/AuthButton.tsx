@@ -110,9 +110,9 @@ export default function AuthButton() {
   return (
     <AuthContainer>
       <UserInfo>
-        {user.user_metadata?.avatar_url && (
+        {user.user_metadata?.picture && (
           <Avatar 
-            src={user.user_metadata.avatar_url} 
+            src={user.user_metadata.picture} 
             alt={user.user_metadata?.full_name || user.email || '사용자'}
           />
         )}

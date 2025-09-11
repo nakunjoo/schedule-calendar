@@ -38,9 +38,16 @@ export const schedules = createSlice({
       state = action.payload;
       return state;
     },
+    updateSchedule: (state, action: PayloadAction<ScheduleData>) => {
+      const index = state.findIndex(schedule => schedule.id === action.payload.id);
+      if (index !== -1) {
+        state[index] = action.payload;
+      }
+      return state;
+    },
   },
 });
 
-export const { addSchedule, deleteSchedule, setSchedule } = schedules.actions;
+export const { addSchedule, deleteSchedule, setSchedule, updateSchedule } = schedules.actions;
 
 export default schedules.reducer;
