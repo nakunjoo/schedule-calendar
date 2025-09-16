@@ -139,7 +139,7 @@ export default function CalendarWrap() {
     }
     await axios
       .get(
-        `http://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getHoliDeInfo?solYear=${solYear}&solMonth=${solMonth}&ServiceKey=${dataServiceKey}`
+        `https://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getHoliDeInfo?solYear=${solYear}&solMonth=${solMonth}&ServiceKey=${dataServiceKey}`
       )
       .then((res) => {
         let items = res.data?.response?.body?.items?.item;
@@ -162,7 +162,7 @@ export default function CalendarWrap() {
     }
     axios
       .get(
-        `http://apis.data.go.kr/B090041/openapi/service/LrsrCldInfoService/getLunCalInfo?solYear=${solYear}&solMonth=${solMonth}&numOfRows=31&ServiceKey=${dataServiceKey}`
+        `https://apis.data.go.kr/B090041/openapi/service/LrsrCldInfoService/getLunCalInfo?solYear=${solYear}&solMonth=${solMonth}&numOfRows=31&ServiceKey=${dataServiceKey}`
       )
       .then((res) => {
         let items = res.data?.response?.body?.items?.item;
