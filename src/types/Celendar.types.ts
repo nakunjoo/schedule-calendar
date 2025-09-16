@@ -8,8 +8,6 @@ export type dayData = {
     name: string;
     isHoliday: string;
   };
-  anniversary: string;
-  exquisiteness: string;
   lunar: string;
   schedules: ScheduleData[];
   schedule_bar: ScheduleData[];

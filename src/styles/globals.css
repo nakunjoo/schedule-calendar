@@ -13,8 +13,53 @@
   display: none;
 }
 
+/* Custom scrollbar for specific elements */
+.custom-scrollbar::-webkit-scrollbar {
+  display: block;
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 10px;
+  margin: 8px 2px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(145deg, rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.25));
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(145deg, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.35));
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transform: scaleY(1.05);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(145deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.4));
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) rgba(0, 0, 0, 0.05);
+}
+
 body {
   font-size: 14px;
   font-family: "Noto Sans KR", sans-serif;
   /* background-color: #c5e4f7; */
+}
+
+/* Hide scrollbar for category overflow */
+.overflow-x-auto::-webkit-scrollbar {
+  display: none;
+}
+
+.overflow-x-auto {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

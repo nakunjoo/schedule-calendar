@@ -15,12 +15,12 @@ export const initDB = (): Promise<boolean> => {
   return Promise.resolve(true);
 };
 
-export const getOptionDBData = async (option: OptionState): Promise<OptionState> => {
+export const getOptionDBData = async (): Promise<OptionState | null> => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       console.log('No authenticated user');
-      return option;
+      return null;
     }
 
     const { data, error } = await supabase
@@ -30,34 +30,36 @@ export const getOptionDBData = async (option: OptionState): Promise<OptionState>
       .single();
 
     if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-      console.log('error', error);
-      return option;
+      console.log('error loading options:', error);
+      return null;
     }
 
     if (!data) {
-      // If no options exist, create default options
-      await addOptionDBData(option);
-      return option;
+      console.log('No options found for user - waiting for trigger to create options');
+      return null;
     }
 
+    console.log('Loaded options from DB:', data);
+    
     // Map database fields to OptionState format
-    return {
+    const loadedOptions = {
       id: data.id,
       themeColor: data.theme_color,
       bgColor: data.bg_color,
       language: data.language,
       holiday: data.holiday,
-      anniversary: data.anniversary,
-      exquisiteness: data.exquisiteness,
       lunar: data.lunar,
     };
+    
+    console.log('Mapped options:', loadedOptions);
+    return loadedOptions;
   } catch (error) {
     console.log('error:', error);
-    return option;
+    return null;
   }
 };
 
-export const addOptionDBData = async (option: OptionState): Promise<void> => {
+export const updateOptionDBData = async (option: OptionState): Promise<void> => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -65,32 +67,30 @@ export const addOptionDBData = async (option: OptionState): Promise<void> => {
       return;
     }
 
+    console.log('Updating options in DB:', option);
+    
     const { error } = await supabase
       .from('options')
-      .upsert({
-        user_id: user.id, // Let database generate UUID automatically
-        calendar_view: 'month',
-        theme: 'light',
-        theme_color: option.themeColor,
-        bg_color: option.bgColor,
-        language: option.language,
+      .update({
+        theme_color: option.themeColor || '#aa5fd3',
+        bg_color: option.bgColor || '#c5e4f7',
+        language: option.language || 'Ko',
         holiday: option.holiday,
-        anniversary: option.anniversary,
-        exquisiteness: option.exquisiteness,
         lunar: option.lunar,
-      } as any, {
-        onConflict: 'user_id' // Use user_id for conflict resolution instead of id
-      });
+      })
+      .eq('user_id', user.id);
 
     if (error) {
-      console.log('error', error);
+      console.log('error updating options:', error);
     } else {
-      console.log('options data added!');
+      console.log('options updated successfully!');
     }
   } catch (error) {
     console.log('error:', error);
   }
 };
+
+// addOptionDBData 함수 완전 제거 - 오직 Supabase 트리거에서만 옵션 생성
 
 // category
 
@@ -151,6 +151,42 @@ export const addCategoryDBData = async (category: CategoryData): Promise<Categor
       return null;
     } else {
       console.log('categoryData added!', data);
+      return {
+        id: data.id,
+        name: data.name,
+        color: data.color,
+      };
+    }
+  } catch (error) {
+    console.log('error:', error);
+    return null;
+  }
+};
+
+export const updateCategoryDBData = async (id: string, category: CategoryData): Promise<CategoryData | null> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.log('No authenticated user');
+      return null;
+    }
+
+    const { data, error } = await supabase
+      .from('categories')
+      .update({
+        name: category.name,
+        color: category.color,
+      } as any)
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.log('error updating category:', error);
+      return null;
+    } else {
+      console.log('categoryData updated!', data);
       return {
         id: data.id,
         name: data.name,
@@ -247,22 +283,45 @@ export const getScheduleDB = async (currentDate: string): Promise<addScheduleDat
     console.log('Loaded schedules:', data);
 
     // Convert database format to application format
-    const schedules: ScheduleData[] = data.map(item => ({
-      id: item.id,
-      type: item.type || 'schedule',
-      turn: item.turn || 0,
-      title: item.title,
-      startDate: item.start_date || item.date,
-      endDate: item.end_date || item.date,
-      category: {
-        id: item.categories?.id || '',
-        name: item.categories?.name || '',
-        color: item.categories?.color || '#000000',
-      },
-      memo: item.description || '',
-      start: item.start_time || '',
-      end: item.end_time || '',
-    }));
+    const schedules: ScheduleData[] = data.map(item => {
+      // Ensure we have valid date fields
+      const startDate = item.start_date || item.date || '';
+      const endDate = item.end_date || item.date || '';
+      const startTime = item.start_time || '';
+      const endTime = item.end_time || '';
+      
+      console.log('Converting schedule item:', {
+        id: item.id,
+        title: item.title,
+        startDate,
+        endDate,
+        startTime,
+        endTime,
+        original: item
+      });
+      
+      // Validate dates before returning
+      if (!startDate || !endDate) {
+        console.warn('Schedule has missing dates:', item);
+      }
+      
+      return {
+        id: item.id,
+        type: item.type || 'schedule',
+        turn: item.turn || 0,
+        title: item.title,
+        startDate: startDate,
+        endDate: endDate,
+        category: {
+          id: item.categories?.id || '',
+          name: item.categories?.name || '',
+          color: item.categories?.color || '#000000',
+        },
+        memo: item.description || '',
+        start: startTime,
+        end: endTime,
+      };
+    });
 
     return {
       DATE: currentDate,

@@ -19,8 +19,6 @@ export interface Database {
           bg_color: string
           language: string
           holiday: boolean
-          anniversary: boolean
-          exquisiteness: boolean
           lunar: boolean
           created_at: string
           updated_at: string
@@ -34,8 +32,6 @@ export interface Database {
           bg_color?: string
           language?: string
           holiday?: boolean
-          anniversary?: boolean
-          exquisiteness?: boolean
           lunar?: boolean
           created_at?: string
           updated_at?: string
@@ -49,8 +45,6 @@ export interface Database {
           bg_color?: string
           language?: string
           holiday?: boolean
-          anniversary?: boolean
-          exquisiteness?: boolean
           lunar?: boolean
           created_at?: string
           updated_at?: string

@@ -116,9 +116,9 @@ export default function AuthButton() {
             alt={user.user_metadata?.full_name || user.email || '사용자'}
           />
         )}
-        <UserName>
+        {/* <UserName>
           {user.user_metadata?.full_name || user.email}
-        </UserName>
+        </UserName> */}
       </UserInfo>
       <LogoutButton onClick={signOut}>
         로그아웃

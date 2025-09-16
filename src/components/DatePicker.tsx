@@ -1,7 +1,6 @@
 "use client";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { Icon } from "@iconify/react";
-import { PickerBox } from "@/styles/datepicker.style";
 import dayjs from "dayjs";
 import { startOfMonth, endOfMonth } from "date-fns";
 import { OptionState } from "@/stores/slices/option-slices";
@@ -92,17 +91,20 @@ export default function DatePicker({
   }, []);
 
   useEffect(() => {
-    setStartYear(dayjs(startDate).format("YYYY"));
-    setStartMonth(dayjs(startDate).format("MM"));
-    setStartDay(dayjs(startDate).format("DD"));
-    setStartHour(dayjs(startDate).format("HH"));
-    setStartMin(dayjs(startDate).format("mm"));
+    const startDayjs = dayjs(startDate).isValid() ? dayjs(startDate) : dayjs();
+    const endDayjs = dayjs(endDate).isValid() ? dayjs(endDate) : dayjs();
 
-    setEndYear(dayjs(endDate).format("YYYY"));
-    setEndMonth(dayjs(endDate).format("MM"));
-    setEndDay(dayjs(endDate).format("DD"));
-    setEndHour(dayjs(endDate).format("HH"));
-    setEndMin(dayjs(endDate).format("mm"));
+    setStartYear(startDayjs.format("YYYY"));
+    setStartMonth(startDayjs.format("MM"));
+    setStartDay(startDayjs.format("DD"));
+    setStartHour(startDayjs.format("HH"));
+    setStartMin(startDayjs.format("mm"));
+
+    setEndYear(endDayjs.format("YYYY"));
+    setEndMonth(endDayjs.format("MM"));
+    setEndDay(endDayjs.format("DD"));
+    setEndHour(endDayjs.format("HH"));
+    setEndMin(endDayjs.format("mm"));
   }, [startDate, endDate]);
 
   useEffect(() => {
@@ -129,27 +131,29 @@ export default function DatePicker({
   }, [startYear, startMonth]);
 
   useEffect(() => {
-    const date = dayjs(`${endYear}-${endMonth}`).format("YYYY-MM-DD");
-    const monthStart = startOfMonth(date);
-    const monthEnd = parseInt(dayjs(endOfMonth(monthStart)).format("D"));
+    if (endYear && endMonth) {
+      const date = dayjs(`${endYear}-${endMonth}`).format("YYYY-MM-DD");
+      const monthStart = startOfMonth(date);
+      const monthEnd = parseInt(dayjs(endOfMonth(monthStart)).format("D"));
 
-    const days = [];
-    for (let day = 1; day <= monthEnd; day++) {
-      let str = "";
-      if (day < 10) {
-        str = `0${day}`;
-      } else {
-        str = `${day}`;
+      const days = [];
+      for (let day = 1; day <= monthEnd; day++) {
+        let str = "";
+        if (day < 10) {
+          str = `0${day}`;
+        } else {
+          str = `${day}`;
+        }
+        days.push(str);
       }
-      days.push(str);
-    }
 
-    if (Number(endDay) > monthEnd) {
-      setEndDay(`${monthEnd}`);
-    }
+      if (Number(endDay) > monthEnd) {
+        setEndDay(`${monthEnd}`);
+      }
 
-    setEndDayList(days);
-  }, [endYear, endMonth]);
+      setEndDayList(days);
+    }
+  }, [endYear, endMonth, endDay]);
 
   useEffect(() => {
     if (!startOpen) return;
@@ -180,333 +184,347 @@ export default function DatePicker({
   }, [endOpen]);
 
   useEffect(() => {
-    const startValue = `${startYear}-${startMonth}-${startDay} ${startHour}:${startMin}`;
-    setStartValue(startValue);
+    if (startYear && startMonth && startDay && startHour && startMin && 
+        startYear !== "Invalid" && startMonth !== "Invalid" && startDay !== "Invalid" && 
+        startHour !== "Invalid" && startMin !== "Invalid") {
+      const startValue = `${startYear}-${startMonth}-${startDay} ${startHour}:${startMin}`;
+      // dayjs로 유효한 날짜인지 확인
+      if (dayjs(startValue).isValid()) {
+        setStartValue(startValue);
+      }
+    }
   }, [startYear, startMonth, startDay, startHour, startMin]);
 
   useEffect(() => {
-    const endValue = `${endYear}-${endMonth}-${endDay} ${endHour}:${endMin}`;
-    setEndValue(endValue);
+    if (endYear && endMonth && endDay && endHour && endMin &&
+        endYear !== "Invalid" && endMonth !== "Invalid" && endDay !== "Invalid" && 
+        endHour !== "Invalid" && endMin !== "Invalid") {
+      const endValue = `${endYear}-${endMonth}-${endDay} ${endHour}:${endMin}`;
+      // dayjs로 유효한 날짜인지 확인
+      if (dayjs(endValue).isValid()) {
+        setEndValue(endValue);
+      }
+    }
   }, [endYear, endMonth, endDay, endHour, endMin]);
 
   return (
-    <div className="w-full mt-2 sm:flex sm:justify-around">
-      <div className="sm:inline-block block sm:w-60 w-full relative">
-        <Icon
-          className="inline-block w-8 h-8 mr-2 -mt-1"
-          icon="vaadin:hourglass-start"
-          style={{ color: userOptions.themeColor }}
-        />
-        <input
-          className="border-black border-solid border rounded p-2 cursor-pointer text-base"
-          type="text"
-          placeholder="시작: YYYY/MM/DD"
-          value={`${startYear} / ${startMonth} / ${startDay}  ${startHour} : ${startMin}`}
-          onClick={() => {
-            setStartOpen(!startOpen);
-          }}
-          readOnly
-        />
-        {startOpen ? (
-          <PickerBox
-            className={`w-full bg-white border border-black border-solid 
-          } rounded-md  text-center text-lg absolute top-12 left-0 z-10`}
+    <div className="w-full space-y-4">
+      {/* Start Time */}
+      <div className="space-y-2">
+        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+          <Icon
+            className="w-4 h-4"
+            icon="heroicons:play"
+            style={{ color: userOptions.themeColor }}
+          />
+          시작 시간
+        </label>
+        <div className="relative">
+          <button
+            className="w-full px-4 py-3 border border-gray-200 rounded-xl hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 text-left bg-white"
+            onClick={() => setStartOpen(!startOpen)}
           >
-            <div className="w-full flex justify-between border-b border-black border-solid bg-[#eedeff] text-base rounded-t-md">
-              <span className="w-[110px] border-r border-black border-solid">
-                년
-              </span>
-              <span className="w-[55px] border-r border-black border-solid">
-                월
-              </span>
-              <span className="w-[55px] border-r border-black border-solid">
-                일
-              </span>
-              <span className="w-2"></span>
-              <span className="w-[55px] border-l border-black border-solid">
-                시
-              </span>
-              <span className="w-[55px] border-l border-black border-solid">
-                분
-              </span>
-            </div>
-            <div className="w-full flex justify-between h-44 ">
-              {/* year */}
-              <div className="border-r border-black border-solid w-[110px] overflow-hidden overflow-y-auto relative">
-                {startYearList.map((year, index) => {
-                  return (
-                    <div
-                      key={index}
-                      id={`start-year-${year}`}
-                      tabIndex={0}
-                      className={`p-1 cursor-pointer ${
-                        year === startYear ? "active" : ""
-                      }`}
-                      onClick={() => {
-                        setStartYear(year);
-                      }}
-                    >
-                      {year}
-                    </div>
-                  );
-                })}
-              </div>
-              {/* month */}
-              <div className="border-r border-black border-solid w-[55px] overflow-hidden overflow-y-auto relative">
-                {startMonthList.map((month, index) => {
-                  return (
-                    <div
-                      key={index}
-                      id={`start-month-${month}`}
-                      tabIndex={0}
-                      className={`p-1 cursor-pointer ${
-                        month === startMonth ? "active" : ""
-                      }`}
-                      onClick={() => {
-                        setStartMonth(month);
-                      }}
-                    >
-                      {month}
-                    </div>
-                  );
-                })}
-              </div>
-              {/* day */}
-              <div className="border-r border-black border-solid w-[55px] overflow-hidden overflow-y-auto relative">
-                {startDayList.map((day, index) => {
-                  return (
-                    <div
-                      key={index}
-                      id={`start-day-${day}`}
-                      tabIndex={0}
-                      className={`p-1 cursor-pointer ${
-                        day === startDay ? "active" : ""
-                      }`}
-                      onClick={() => {
-                        setStartDay(day);
-                      }}
-                    >
-                      {day}
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="w-2"></div>
-              {/* hour */}
-              <div className="border-l border-black border-solid w-[55px] overflow-hidden overflow-y-auto relative">
-                {startHourList.map((hour, index) => {
-                  return (
-                    <div
-                      key={index}
-                      id={`start-hour-${hour}`}
-                      tabIndex={0}
-                      className={`p-1 cursor-pointer ${
-                        hour === startHour ? "active" : ""
-                      }`}
-                      onClick={() => {
-                        setStartHour(hour);
-                      }}
-                    >
-                      {hour}
-                    </div>
-                  );
-                })}
-              </div>
-              {/* min */}
-              <div className="border-l border-black border-solid w-[55px] overflow-hidden overflow-y-auto relative">
-                {startMinList.map((min, index) => {
-                  return (
-                    <div
-                      key={index}
-                      id={`start-min-${min}`}
-                      tabIndex={0}
-                      className={`p-1 cursor-pointer ${
-                        min === startMin ? "active" : ""
-                      }`}
-                      onClick={() => {
-                        setStartMin(min);
-                      }}
-                    >
-                      {min}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="w-full p-2 flex justify-end">
+            <span className="text-gray-700 font-medium">
+              {startYear}년 {startMonth}월 {startDay}일 {startHour}:{startMin}
+            </span>
+            <Icon 
+              icon={startOpen ? "heroicons:chevron-up" : "heroicons:chevron-down"} 
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" 
+            />
+          </button>
+          {startOpen && (
+            <>
               <div
-                className={`w-16 rounded-md text-white p-2 cursor-pointer`}
-                style={{ backgroundColor: userOptions.themeColor }}
-                onClick={() => {
-                  setStartOpen(false);
-                }}
-              >
-                확인
+                className="fixed inset-0 z-[40]"
+                onClick={() => setStartOpen(false)}
+              />
+              <div className="absolute top-16 left-0 right-0 z-[50] bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden">
+                {/* Header */}
+                <div className="flex bg-gray-50 border-b border-gray-100 text-sm font-medium text-gray-600">
+                  <div className="flex-1 py-3 text-center border-r border-gray-200">년도</div>
+                  <div className="w-16 py-3 text-center border-r border-gray-200">월</div>
+                  <div className="w-16 py-3 text-center border-r border-gray-200">일</div>
+                  <div className="w-2 bg-gray-100"></div>
+                  <div className="w-16 py-3 text-center border-l border-gray-200">시</div>
+                  <div className="w-16 py-3 text-center">분</div>
+                </div>
+                {/* Date Time Selector */}
+                <div className="flex h-48">
+                  {/* year */}
+                  <div className="flex-1 border-r border-gray-100 overflow-y-auto">
+                    {startYearList.map((year, index) => (
+                      <button
+                        key={index}
+                        id={`start-year-${year}`}
+                        className={`w-full py-2 text-sm hover:bg-gray-50 transition-colors duration-150 ${
+                          year === startYear 
+                            ? "font-semibold text-white" 
+                            : "text-gray-700"
+                        }`}
+                        style={{
+                          backgroundColor: year === startYear ? userOptions.themeColor : 'transparent'
+                        }}
+                        onClick={() => setStartYear(year)}
+                      >
+                        {year}
+                      </button>
+                    ))}
+                  </div>
+                  {/* month */}
+                  <div className="w-16 border-r border-gray-100 overflow-y-auto">
+                    {startMonthList.map((month, index) => (
+                      <button
+                        key={index}
+                        id={`start-month-${month}`}
+                        className={`w-full py-2 text-sm hover:bg-gray-50 transition-colors duration-150 ${
+                          month === startMonth 
+                            ? "font-semibold text-white" 
+                            : "text-gray-700"
+                        }`}
+                        style={{
+                          backgroundColor: month === startMonth ? userOptions.themeColor : 'transparent'
+                        }}
+                        onClick={() => setStartMonth(month)}
+                      >
+                        {month}
+                      </button>
+                    ))}
+                  </div>
+                  {/* day */}
+                  <div className="w-16 border-r border-gray-100 overflow-y-auto">
+                    {startDayList.map((day, index) => (
+                      <button
+                        key={index}
+                        id={`start-day-${day}`}
+                        className={`w-full py-2 text-sm hover:bg-gray-50 transition-colors duration-150 ${
+                          day === startDay 
+                            ? "font-semibold text-white" 
+                            : "text-gray-700"
+                        }`}
+                        style={{
+                          backgroundColor: day === startDay ? userOptions.themeColor : 'transparent'
+                        }}
+                        onClick={() => setStartDay(day)}
+                      >
+                        {day}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="w-2 bg-gray-100"></div>
+                  {/* hour */}
+                  <div className="w-16 border-l border-gray-100 overflow-y-auto">
+                    {startHourList.map((hour, index) => (
+                      <button
+                        key={index}
+                        id={`start-hour-${hour}`}
+                        className={`w-full py-2 text-sm hover:bg-gray-50 transition-colors duration-150 ${
+                          hour === startHour 
+                            ? "font-semibold text-white" 
+                            : "text-gray-700"
+                        }`}
+                        style={{
+                          backgroundColor: hour === startHour ? userOptions.themeColor : 'transparent'
+                        }}
+                        onClick={() => setStartHour(hour)}
+                      >
+                        {hour}
+                      </button>
+                    ))}
+                  </div>
+                  {/* min */}
+                  <div className="w-16 overflow-y-auto">
+                    {startMinList.map((min, index) => (
+                      <button
+                        key={index}
+                        id={`start-min-${min}`}
+                        className={`w-full py-2 text-sm hover:bg-gray-50 transition-colors duration-150 ${
+                          min === startMin 
+                            ? "font-semibold text-white" 
+                            : "text-gray-700"
+                        }`}
+                        style={{
+                          backgroundColor: min === startMin ? userOptions.themeColor : 'transparent'
+                        }}
+                        onClick={() => setStartMin(min)}
+                      >
+                        {min}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {/* Action Button */}
+                <div className="p-4 border-t border-gray-100 bg-gray-50">
+                  <button
+                    className="w-full py-2 px-4 text-white font-medium rounded-lg transition-all duration-200 hover:opacity-90"
+                    style={{ backgroundColor: userOptions.themeColor }}
+                    onClick={() => setStartOpen(false)}
+                  >
+                    확인
+                  </button>
+                </div>
               </div>
-            </div>
-          </PickerBox>
-        ) : (
-          <></>
-        )}
+            </>
+          )}
+        </div>
       </div>
-      <span className="sm:mx-2 mt-2">~</span>
-      <div className="sm:inline-block block sm:w-60 w-full relative">
-        <Icon
-          className="inline-block  w-8 h-8 mr-2 -mt-1"
-          icon="vaadin:hourglass-end"
-          style={{ color: userOptions.themeColor }}
-        />
-        <input
-          className="border-black border-solid border rounded p-2 text-base cursor-pointer"
-          type="text"
-          placeholder="종료: YYYY/MM/DD"
-          value={`${endYear} / ${endMonth} / ${endDay}  ${endHour} : ${endMin}`}
-          onClick={() => {
-            setEndOpen(!endOpen);
-          }}
-          readOnly
-        />
-        {endOpen ? (
-          <PickerBox
-            className={`w-full bg-white border border-black border-solid 
-          } rounded-md  text-center text-lg absolute top-12 left-0 z-10`}
+
+      {/* End Time */}
+      <div className="space-y-2">
+        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+          <Icon
+            className="w-4 h-4"
+            icon="heroicons:stop"
+            style={{ color: userOptions.themeColor }}
+          />
+          종료 시간
+        </label>
+        <div className="relative">
+          <button
+            className="w-full px-4 py-3 border border-gray-200 rounded-xl hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 text-left bg-white"
+            onClick={() => setEndOpen(!endOpen)}
           >
-            <div className="w-full flex justify-between border-b border-black border-solid bg-[#eedeff] text-base rounded-t-md">
-              <span className="w-[110px] border-r border-black border-solid">
-                년
-              </span>
-              <span className="w-[55px] border-r border-black border-solid">
-                월
-              </span>
-              <span className="w-[55px] border-r border-black border-solid">
-                일
-              </span>
-              <span className="w-2"></span>
-              <span className="w-[55px] border-l border-black border-solid">
-                시
-              </span>
-              <span className="w-[55px] border-l border-black border-solid">
-                분
-              </span>
-            </div>
-            <div className="w-full flex justify-between h-44">
-              {/* year */}
-              <div className="border-r border-black border-solid w-[110px] overflow-hidden overflow-y-auto relative">
-                {endYearList.map((year, index) => {
-                  return (
-                    <div
-                      key={index}
-                      id={`end-year-${year}`}
-                      tabIndex={0}
-                      className={`p-1 cursor-pointer ${
-                        year === endYear ? "active" : ""
-                      }`}
-                      onClick={() => {
-                        setEndYear(year);
-                      }}
-                    >
-                      {year}
-                    </div>
-                  );
-                })}
-              </div>
-              {/* month */}
-              <div className="border-r border-black border-solid w-[55px] overflow-hidden overflow-y-auto relative">
-                {endMonthList.map((month, index) => {
-                  return (
-                    <div
-                      key={index}
-                      id={`end-month-${month}`}
-                      tabIndex={0}
-                      className={`p-1 cursor-pointer ${
-                        month === endMonth ? "active" : ""
-                      }`}
-                      onClick={() => {
-                        setEndMonth(month);
-                      }}
-                    >
-                      {month}
-                    </div>
-                  );
-                })}
-              </div>
-              {/* day */}
-              <div className="border-r border-black border-solid w-[55px] overflow-hidden overflow-y-auto relative">
-                {endDayList.map((day, index) => {
-                  return (
-                    <div
-                      key={index}
-                      id={`end-day-${day}`}
-                      tabIndex={0}
-                      className={`p-1 cursor-pointer ${
-                        day === endDay ? "active" : ""
-                      }`}
-                      onClick={() => {
-                        setEndDay(day);
-                      }}
-                    >
-                      {day}
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="w-2"></div>
-              {/* hour */}
-              <div className="border-l border-black border-solid w-[55px] overflow-hidden overflow-y-auto relative">
-                {endHourList.map((hour, index) => {
-                  return (
-                    <div
-                      key={index}
-                      id={`end-hour-${hour}`}
-                      tabIndex={0}
-                      className={`p-1 cursor-pointer ${
-                        hour === endHour ? "active" : ""
-                      }`}
-                      onClick={() => {
-                        setEndHour(hour);
-                      }}
-                    >
-                      {hour}
-                    </div>
-                  );
-                })}
-              </div>
-              {/* min */}
-              <div className="border-l border-black border-solid w-[55px] overflow-hidden overflow-y-auto relative">
-                {endMinList.map((min, index) => {
-                  return (
-                    <div
-                      key={index}
-                      id={`end-min-${min}`}
-                      tabIndex={0}
-                      className={`p-1 cursor-pointer ${
-                        min === endMin ? "active" : ""
-                      }`}
-                      onClick={() => {
-                        setEndMin(min);
-                      }}
-                    >
-                      {min}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="w-full p-2 flex justify-end">
+            <span className="text-gray-700 font-medium">
+              {endYear}년 {endMonth}월 {endDay}일 {endHour}:{endMin}
+            </span>
+            <Icon 
+              icon={endOpen ? "heroicons:chevron-up" : "heroicons:chevron-down"} 
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" 
+            />
+          </button>
+          {endOpen && (
+            <>
               <div
-                className={`w-16 rounded-md text-white p-2 cursor-pointer`}
-                style={{ backgroundColor: userOptions.themeColor }}
-                onClick={() => {
-                  setEndOpen(false);
-                }}
-              >
-                확인
+                className="fixed inset-0 z-[40]"
+                onClick={() => setEndOpen(false)}
+              />
+              <div className="absolute top-16 left-0 right-0 z-[50] bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden">
+                {/* Header */}
+                <div className="flex bg-gray-50 border-b border-gray-100 text-sm font-medium text-gray-600">
+                  <div className="flex-1 py-3 text-center border-r border-gray-200">년도</div>
+                  <div className="w-16 py-3 text-center border-r border-gray-200">월</div>
+                  <div className="w-16 py-3 text-center border-r border-gray-200">일</div>
+                  <div className="w-2 bg-gray-100"></div>
+                  <div className="w-16 py-3 text-center border-l border-gray-200">시</div>
+                  <div className="w-16 py-3 text-center">분</div>
+                </div>
+                {/* Date Time Selector */}
+                <div className="flex h-48">
+                  {/* year */}
+                  <div className="flex-1 border-r border-gray-100 overflow-y-auto">
+                    {endYearList.map((year, index) => (
+                      <button
+                        key={index}
+                        id={`end-year-${year}`}
+                        className={`w-full py-2 text-sm hover:bg-gray-50 transition-colors duration-150 ${
+                          year === endYear 
+                            ? "font-semibold text-white" 
+                            : "text-gray-700"
+                        }`}
+                        style={{
+                          backgroundColor: year === endYear ? userOptions.themeColor : 'transparent'
+                        }}
+                        onClick={() => setEndYear(year)}
+                      >
+                        {year}
+                      </button>
+                    ))}
+                  </div>
+                  {/* month */}
+                  <div className="w-16 border-r border-gray-100 overflow-y-auto">
+                    {endMonthList.map((month, index) => (
+                      <button
+                        key={index}
+                        id={`end-month-${month}`}
+                        className={`w-full py-2 text-sm hover:bg-gray-50 transition-colors duration-150 ${
+                          month === endMonth 
+                            ? "font-semibold text-white" 
+                            : "text-gray-700"
+                        }`}
+                        style={{
+                          backgroundColor: month === endMonth ? userOptions.themeColor : 'transparent'
+                        }}
+                        onClick={() => setEndMonth(month)}
+                      >
+                        {month}
+                      </button>
+                    ))}
+                  </div>
+                  {/* day */}
+                  <div className="w-16 border-r border-gray-100 overflow-y-auto">
+                    {endDayList.map((day, index) => (
+                      <button
+                        key={index}
+                        id={`end-day-${day}`}
+                        className={`w-full py-2 text-sm hover:bg-gray-50 transition-colors duration-150 ${
+                          day === endDay 
+                            ? "font-semibold text-white" 
+                            : "text-gray-700"
+                        }`}
+                        style={{
+                          backgroundColor: day === endDay ? userOptions.themeColor : 'transparent'
+                        }}
+                        onClick={() => setEndDay(day)}
+                      >
+                        {day}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="w-2 bg-gray-100"></div>
+                  {/* hour */}
+                  <div className="w-16 border-l border-gray-100 overflow-y-auto">
+                    {endHourList.map((hour, index) => (
+                      <button
+                        key={index}
+                        id={`end-hour-${hour}`}
+                        className={`w-full py-2 text-sm hover:bg-gray-50 transition-colors duration-150 ${
+                          hour === endHour 
+                            ? "font-semibold text-white" 
+                            : "text-gray-700"
+                        }`}
+                        style={{
+                          backgroundColor: hour === endHour ? userOptions.themeColor : 'transparent'
+                        }}
+                        onClick={() => setEndHour(hour)}
+                      >
+                        {hour}
+                      </button>
+                    ))}
+                  </div>
+                  {/* min */}
+                  <div className="w-16 overflow-y-auto">
+                    {endMinList.map((min, index) => (
+                      <button
+                        key={index}
+                        id={`end-min-${min}`}
+                        className={`w-full py-2 text-sm hover:bg-gray-50 transition-colors duration-150 ${
+                          min === endMin 
+                            ? "font-semibold text-white" 
+                            : "text-gray-700"
+                        }`}
+                        style={{
+                          backgroundColor: min === endMin ? userOptions.themeColor : 'transparent'
+                        }}
+                        onClick={() => setEndMin(min)}
+                      >
+                        {min}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {/* Action Button */}
+                <div className="p-4 border-t border-gray-100 bg-gray-50">
+                  <button
+                    className="w-full py-2 px-4 text-white font-medium rounded-lg transition-all duration-200 hover:opacity-90"
+                    style={{ backgroundColor: userOptions.themeColor }}
+                    onClick={() => setEndOpen(false)}
+                  >
+                    확인
+                  </button>
+                </div>
               </div>
-            </div>
-          </PickerBox>
-        ) : (
-          <></>
-        )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

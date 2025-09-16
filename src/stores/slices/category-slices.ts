@@ -20,6 +20,13 @@ export const category = createSlice({
       state.splice(action.payload, 1);
       return state;
     },
+    updateCategory: (state, action: PayloadAction<CategoryData>) => {
+      const index = state.findIndex(cat => cat.id === action.payload.id);
+      if (index !== -1) {
+        state[index] = action.payload;
+      }
+      return state;
+    },
     setCategory: (state, action: PayloadAction<CategoryData[]>) => {
       state = action.payload;
       return state;
@@ -27,6 +34,6 @@ export const category = createSlice({
   },
 });
 
-export const { addCategory, deleteCategory, setCategory } = category.actions;
+export const { addCategory, deleteCategory, updateCategory, setCategory } = category.actions;
 
 export default category.reducer;
